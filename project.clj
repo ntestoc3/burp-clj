@@ -7,6 +7,7 @@
                  [net.portswigger.burp.extender/burp-extender-api "2.1"]
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.tcrawley/dynapath "1.1.0"] ;; dynamic class loader
+                 [camel-snake-kebab "0.4.1"]
                  [cider/cider-nrepl "0.25.0-alpha1"]
                  [nrepl "0.7.0"]]
   :java-source-paths ["java-src"]
