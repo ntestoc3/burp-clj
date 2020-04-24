@@ -1,7 +1,12 @@
 (ns burp.core
   (:require [nrepl.server :refer [start-server stop-server]]
             [cemerick.pomegranate :refer [add-dependencies]]
+            [seesaw.core :as gui]
             [camel-snake-kebab.core :as csk]
+            [buddy.core.bytes :as bytes]
+            [buddy.core.codecs :as codecs]
+            [buddy.core.codecs.base64 :as base64]
+            [clojure.java.browse :refer [browse-url]]
             [clojure.string :as str])
   (:import [burp
             IBurpExtender
@@ -14,6 +19,8 @@
             IResponseInfo
             IParameter
             ICookie
+            IContextMenuInvocation
+            IContextMenuFactory
             ]
            [java.io PrintWriter]))
 
@@ -80,9 +87,9 @@
   (-> (get-extender)
       .getHelpers))
 
-(defmacro enum-filed->map
-  "`class`中的静态enum字段转换到invert map"
-  [class prefix]
+(defmacro def-enum-fileds-map
+  "定义`class`中的静态enum字段"
+  [map-name class prefix]
   (let [methods (get-classinfo (eval class))
         static-fields (->> methods
                            (filter :type)
@@ -92,22 +99,31 @@
                            (map (comp str :name)))
         start-pos (dec (count (name prefix)))
         get-field-kv (fn [field]
-                       [(-> (symbol (name class) field)
-                            eval)
-                        (-> (subs field start-pos)
-                            (csk/->kebab-case-keyword))])]
-    (->> static-fields
-         (map get-field-kv)
-         (into {}))))
+                       [(-> (subs field start-pos)
+                            (csk/->kebab-case-keyword))
 
-(def param-type (enum-filed->map IParameter PARAM_))
-(def request-content-type (enum-filed->map IRequestInfo CONTENT_TYPE_))
-(def intercept-action (enum-filed->map IInterceptedProxyMessage ACTION_))
+                        (-> (symbol (name class) field)
+                            eval)])
+        field-map (->> static-fields
+                       (map get-field-kv)
+                       (into {}))
+        inv-filed-map (clojure.set/map-invert field-map)
+        inv-map-name (-> (name map-name)
+                         (str "-inv")
+                         symbol)]
+    `(do
+       (def ~map-name ~field-map)
+       (def ~inv-map-name ~inv-filed-map))))
+
+(def-enum-fileds-map param-type IParameter PARAM_)
+(def-enum-fileds-map request-content-type IRequestInfo CONTENT_TYPE_)
+(def-enum-fileds-map intercept-action IInterceptedProxyMessage ACTION_)
+(def-enum-fileds-map menu-invocation-context IContextMenuInvocation CONTEXT_)
 
 (defn parse-param [^IParameter param]
   {:name (.getName param)
    :type (-> (.getType param)
-             param-type)
+             param-type-inv)
    :value (.getValue param)})
 
 (defn parse-cookie [^ICookie cookie]
@@ -120,7 +136,7 @@
 (defn parse-request [^IRequestInfo req]
   {:method (.getMethod req)
    :content-type (-> (.getContentType req)
-                     request-content-type)
+                     request-content-type-inv)
    :body-offset (.getBodyOffset req)
    :headers (.getHeaders req)
    :params (->> (.getParameters req)
@@ -170,5 +186,73 @@
     (doseq [l (.getProxyListeners ext)]
       (.removeProxyListener ext l))))
 
-(.registerProxyListener (get-extender) (proxy-proc))
+(defn remove-all-context-menu []
+  (let [ext (get-extender)]
+    (doseq [f (.getContextMenuFactories ext)]
+      (.removeContextMenuFactory ext f))))
+
+(defn get-invocation-context
+  [invocation]
+  (-> (.getInvocationContext invocation)
+      menu-invocation-context-inv))
+
+(defn get-selected-text
+  "获得选中的字符"
+  [invocation]
+  (when-let [sel (.getSelectionBounds invocation)]
+    (when-let [msg (-> (.getSelectedMessages invocation)
+                       first)]
+      (let [data (if (#{:message-editor-request
+                        :message-viewer-request}
+                      (get-invocation-context invocation))
+                   (.getRequest msg)
+                   (.getResponse msg))
+            [start end] sel]
+        ;; (log (format "sel:[%d %d]" start end))
+        (-> (bytes/slice data start end)
+            (codecs/bytes->str))))))
+
+
+(defn browse-cyber-chef
+  [input]
+  (->> (base64/encode input)
+       (codecs/bytes->str)
+       (str "https://gchq.github.io/CyberChef/#recipe=Magic(3,false,false,'')&input=" )
+       browse-url))
+
+(defn cyber-chef-menu []
+  (reify IContextMenuFactory
+    (createMenuItems [this invocation]
+      (let [menu-ctx (get-invocation-context invocation)]
+        (log (str "2 add new context menu:" (type menu-ctx)
+                  ":test " (type (#{:message-editor-request
+                                    :message-editor-response
+                                    :message-viewer-request
+                                    :message-viewer-response} menu-ctx))))
+        (if (#{:message-editor-request
+               :message-editor-response
+               :message-viewer-request
+               :message-viewer-response} menu-ctx)
+          (do (log "add menus")
+              [(gui/menu-item :text "CyberChef Magic"
+                              :listen [:action (fn [e]
+                                                 (when-let [txt (get-selected-text invocation)]
+                                                   (log (str "selected text:" txt))
+                                                   (browse-cyber-chef txt)))])
+               ])
+          []
+          )
+        ))))
+
+(comment
+
+  (remove-all-proxy-listeners)
+
+  (.registerProxyListener (get-extender) (proxy-proc))
+
+  (.registerContextMenuFactory (get-extender) (cyber-chef-menu))
+
+  (remove-all-context-menu)
+
+  )
 
