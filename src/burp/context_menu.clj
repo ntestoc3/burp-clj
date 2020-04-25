@@ -1,12 +1,10 @@
 (ns burp.context-menu
   (:require [seesaw.core :as gui]
-            [buddy.core.bytes :as bytes]
-            [buddy.core.codecs :as codecs]
-            [buddy.core.codecs.base64 :as base64]
             [burp.utils :as utils])
   (:import [burp
             IContextMenuInvocation
             IContextMenuFactory]
+           java.util.Arrays
            ))
 
 (defn get-invocation-context
@@ -31,8 +29,8 @@
                    (.getResponse msg))
             [start end] sel]
         ;; (log (format "sel:[%d %d]" start end))
-        (-> (bytes/slice data start end)
-            (codecs/bytes->str))))))
+        (-> (Arrays/copyOfRange data start end)
+            utils/bytes->str)))))
 
 (defn make-context-menu
   [supported-context gen-menu-items-fn]

@@ -10,10 +10,10 @@
                  [camel-snake-kebab "0.4.1"]
                  [cider/cider-nrepl "0.25.0-alpha1"]
                  [seesaw "1.5.0"]
-                 [buddy/buddy-core "1.6.0"]
+                 ;; [buddy/buddy-core "1.6.0"] ;; encrypt
                  [nrepl "0.7.0"]]
   :java-source-paths ["java-src"]
   :source-paths ["src"]
-  ;; :omit-source true
+  :omit-source true
   :aot :all
   )

@@ -1,7 +1,5 @@
 (ns burp.cyber-chef
   (:require [seesaw.core :as gui]
-            [buddy.core.codecs :as codecs]
-            [buddy.core.codecs.base64 :as base64]
             [clojure.java.browse :refer [browse-url]]
             [clojure.string :as str]
             [burp.context-menu :as context-menu]
@@ -10,8 +8,7 @@
 
 (defn browse-cyber-chef
   [input]
-  (->> (base64/encode input)
-       (codecs/bytes->str)
+  (->> (utils/base64-encode input)
        (str "https://gchq.github.io/CyberChef/#recipe=Magic(3,false,false,'')&input=" )
        browse-url))
 
