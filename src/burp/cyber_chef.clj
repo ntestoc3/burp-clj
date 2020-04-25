@@ -25,9 +25,9 @@
   (context-menu/make-context-menu
    menu-context
    (fn [invocation]
-     [(gui/menu-item :text "CyberChef Magic"
-                     :listen [:action (fn [e]
-                                        (let [txt (context-menu/get-selected-text invocation)]
-                                          (utils/log "selected text:" txt)
-                                          (when-not (empty? txt)
-                                            (browse-cyber-chef txt))))])])))
+     (let [txt (context-menu/get-selected-text invocation)]
+       (utils/log "selected text:" txt)
+       [(gui/menu-item :text "CyberChef Magic"
+                       :enabled? (not-empty txt)
+                       :listen [:action (fn [e]
+                                          (browse-cyber-chef txt))])]))))

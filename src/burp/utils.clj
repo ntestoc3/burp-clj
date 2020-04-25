@@ -4,6 +4,7 @@
             [camel-snake-kebab.core :as csk]
             [cemerick.pomegranate :refer [add-dependencies]]
             [clojure.string :as str]
+            [clojure.java.io :refer [as-url]]
             [burp.extender :as extender]
             )
   (:import [burp
@@ -98,10 +99,13 @@
 (def-enum-fileds-map menu-invocation-context IContextMenuInvocation CONTEXT_)
 
 (defn parse-param [^IParameter param]
-  {:name (.getName param)
-   :type (-> (.getType param)
-             param-type-inv)
-   :value (.getValue param)})
+  (log "parse param:" param)
+  (let [r {:name (.getName param)
+          :type (-> (.getType param)
+                    param-type-inv)
+           :value (.getValue param)}]
+    (log "params: r" r)
+    r))
 
 (defn parse-cookie [^ICookie cookie]
   {:domain (.getDomain cookie)
@@ -116,8 +120,8 @@
                      request-content-type-inv)
    :body-offset (.getBodyOffset req)
    :headers (.getHeaders req)
-   :params (->> (.getParameters req)
-                (map parse-param))
+   :params  (->> (.getParameters req)
+                 (mapv parse-param))
    :url (try (.getUrl req)
              (catch Exception _ nil))})
 
@@ -142,5 +146,91 @@
      :status (.getStatusCode resp-info)
      :body-offset (.getBodyOffset resp-info)
      :cookies (->> (.getCookies resp-info)
-                   (map parse-cookie))}))
+                   (mapv parse-cookie))}))
 
+(defn base64-encode
+  [s]
+  (-> (get-helper)
+      (.base64Encode s)))
+
+(defn base64-decode
+  [s]
+  (-> (get-helper)
+      (.base64Decode s)))
+
+(defn build-parameter
+  [name value type]
+  (-> (get-helper)
+      (.buildParameter name value (param-type type))))
+
+(defn add-parameter
+  [req-bs param]
+  (-> (get-helper)
+      (.addParameter req-bs param)))
+
+(defn remove-parameter
+  [req-bs param]
+  (-> (get-helper)
+      (.removeParameter req-bs param)))
+
+(defn update-parameter
+  [req-bs param]
+  (-> (get-helper)
+      (.updateParameter req-bs param)))
+
+(defn get-request-parameter
+  [req-bs param-name]
+  (-> (get-helper)
+      (.getRequestParameter req-bs param-name)))
+
+(defn build-http-request
+  [url]
+  (let [url (if (string? url)
+              (as-url url)
+              url)]
+    (-> (get-helper)
+        (.buildHttpRequest url))))
+
+(defn build-http-service
+  ([host port use-https-or-protocol]
+   (-> (get-helper)
+       (.buildHttpService host port use-https-or-protocol))))
+
+(defn bytes->str
+  [bs]
+  (-> (get-helper)
+      (.bytesToString bs)))
+
+(defn- find-headers-key
+  "find headers key name"
+  [headers k]
+  (let [target-k (-> k name str/lower-case)]
+    (->> headers
+         (filter (fn [[k v]]
+                   (= (-> k str/lower-case str/trim)
+                      target-k)))
+         ffirst)))
+
+(defn get-headers-v
+  "get headers value by header-k"
+  [headers header-k]
+  (->> (find-headers-key headers header-k)
+       (get headers)))
+
+(defn parse-raw-http
+  [raw]
+  (let [[headers body] (str/split raw #"\r?\n\r?\n" 2)
+        [start-line & headers] (str/split headers #"\r?\n")
+        [method uri http-ver] (str/split start-line #"\s")
+        headers (->> headers
+                     (map #(str/split %1 #":\s+" 2))
+                     (filter #(= 2 (count %)))
+                     (into {}))]
+    {:request-method (-> method
+                         str/lower-case
+                         keyword)
+     :server-name (get-headers-v headers :host)
+     :http-ver http-ver
+     :uri uri
+     :headers headers
+     :body body}))
