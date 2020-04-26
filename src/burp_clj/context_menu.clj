@@ -1,6 +1,6 @@
-(ns burp.context-menu
+(ns burp-clj.context-menu
   (:require [seesaw.core :as gui]
-            [burp.helper :as helper])
+            [burp-clj.helper :as helper])
   (:import [burp
             IContextMenuInvocation
             IContextMenuFactory]

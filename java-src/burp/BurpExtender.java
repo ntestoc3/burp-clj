@@ -12,8 +12,8 @@ public class BurpExtender implements IBurpExtender {
 
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
         IFn require = Clojure.var("clojure.core", "require");
-        require.invoke(Clojure.read("burp.core"));
-        IFn register = Clojure.var("burp.core", "register");
+        require.invoke(Clojure.read("burp-clj.core"));
+        IFn register = Clojure.var("burp-clj.core", "register");
         register.invoke(callbacks);
     }
 }

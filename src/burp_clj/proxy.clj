@@ -1,5 +1,5 @@
-(ns burp.proxy
-  (:require [burp.helper :as helper])
+(ns burp-clj.proxy
+  (:require [burp-clj.helper :as helper])
   (:import [burp IProxyListener]))
 
 (defn make-proxy-proc [proc-fn]

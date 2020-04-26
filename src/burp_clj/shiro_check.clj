@@ -1,6 +1,6 @@
-(ns burp.shiro-check
-  (:require [burp.proxy :as proxy]
-            [burp.helper :as helper]))
+(ns burp-clj.shiro-check
+  (:require [burp-clj.proxy :as proxy]
+            [burp-clj.helper :as helper]))
 
 (defn shiro-check
   [is-req msg]

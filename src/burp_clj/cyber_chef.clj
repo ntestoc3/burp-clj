@@ -1,10 +1,10 @@
-(ns burp.cyber-chef
+(ns burp-clj.cyber-chef
   (:require [seesaw.core :as gui]
             [clojure.java.browse :refer [browse-url]]
             [clojure.string :as str]
-            [burp.context-menu :as context-menu]
-            [burp.extender :as extender]
-            [burp.helper :as helper]))
+            [burp-clj.context-menu :as context-menu]
+            [burp-clj.extender :as extender]
+            [burp-clj.helper :as helper]))
 
 (defn browse-cyber-chef
   [input]

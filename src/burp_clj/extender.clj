@@ -1,5 +1,5 @@
-(ns burp.extender
-  (:require [burp.state :as state]
+(ns burp-clj.extender
+  (:require [burp-clj.state :as state]
             [camel-snake-kebab.core :as csk]
             [cheshire.core :as json]
             [clojure.edn :as edn]
@@ -155,10 +155,10 @@
   [^String json-conf]
   (.loadConfigAsJson (get) json-conf))
 
-(defn get-burp-version
+(defn get-burp-clj-version
   []
   (-> (get)
-      (.getBurpVersion)))
+      (.getBurp-CljVersion)))
 
 (defn get-cookie-jar
   []
@@ -181,19 +181,19 @@
       (.getSiteMap url)))
 
 (defn create-message-editor
-  "创建一个burp MessageEditor"
+  "创建一个burp-clj MessageEditor"
   [^IMessageEditorController controller ^Boolean editable]
   (-> (get)
       (.createMessageEditor controller editable)))
 
 (defn create-text-editor
-  "创建一个burp TextEditor"
+  "创建一个burp-clj TextEditor"
   []
   (-> (get)
       (.createTextEditor)))
 
 (defn customize-ui-comp!
-  "对`comp` ui组件使用burp的ui style"
+  "对`comp` ui组件使用burp-clj的ui style"
   [comp]
   (-> (get)
       (.customizeUiComponent comp)))

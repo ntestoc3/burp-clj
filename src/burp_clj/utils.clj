@@ -1,4 +1,4 @@
-(ns burp.utils
+(ns burp-clj.utils
   (:require [clojure.reflect :as reflect]
             [clojure.pprint :as pp]
             [camel-snake-kebab.core :as csk]

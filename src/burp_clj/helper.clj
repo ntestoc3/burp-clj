@@ -1,8 +1,8 @@
-(ns burp.helper
+(ns burp-clj.helper
   (:require [clojure.string :as str]
             [clojure.java.io :refer [as-url]]
-            [burp.extender :as extender]
-            [burp.utils :refer [def-enum-fileds-map]])
+            [burp-clj.extender :as extender]
+            [burp-clj.utils :refer [def-enum-fileds-map]])
   (:refer-clojure :exclude [alert])
   (:import [burp
             IBurpExtender
@@ -42,12 +42,11 @@
         (.issueAlert s))))
 
 (defmacro with-exception-default
-  ([body] (with-exception-default nil body))
-  ([value body]
-   `(try ~body
-         (catch Exception e#
-           (do (alert "exception:" e#)
-               ~value)))))
+  [value body]
+  `(try ~body
+        (catch Exception e#
+          (do (alert "exception:" e#)
+              ~value))))
 
 (defn remove-all-proxy-listeners []
   (let [ext (extender/get)]

@@ -1,4 +1,9 @@
-(defproject burp-clj "0.1.0-SNAPSHOT"
+(def feature-version "0.1")
+(def build-version "1")
+(def release-version (str feature-version "." build-version))
+(def project-name "burp-clj")
+
+(defproject project-name feature-version
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
@@ -15,10 +20,13 @@
                   :exclusions [org.swinglabs.swingx/swingx-core]] ; swing GUI
                  [org.clojure/tools.gitlibs "1.0.83"] ;; git download
                  [cheshire "5.10.0"]
+                 [version-clj "0.1.2"]
                  ;; [buddy/buddy-core "1.6.0"] ;; encrypt
                  ]
   :java-source-paths ["java-src"]
   :source-paths ["src"]
-  :omit-source true
+  :uberjar-name ~(str project-name "-" release-version ".jar")
+  :manifest {"Implementation-Version" ~release-version}
+  ;; :omit-source true
   :aot :all
   )

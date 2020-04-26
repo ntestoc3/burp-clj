@@ -1,4 +1,4 @@
-(ns burp.validate
+(ns burp-clj.validate
   )
 
 (defn valid-port?

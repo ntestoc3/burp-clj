@@ -1,12 +1,12 @@
-(ns burp.ui
+(ns burp-clj.ui
   (:require [seesaw.core :as gui]
             [seesaw.bind :as bind]
             [seesaw.border :as border]
-            [burp.state :as state]
+            [burp-clj.state :as state]
             [seesaw.mig :refer [mig-panel]]
-            [burp.extender :as extender]
-            [burp.helper :as helper]
-            [burp.nrepl :as nrepl]))
+            [burp-clj.extender :as extender]
+            [burp-clj.helper :as helper]
+            [burp-clj.nrepl :as nrepl]))
 
 (defn make-nrepl-view
   []
@@ -48,6 +48,14 @@
     (mig-panel
      :border (border/empty-border :left 10 :top 10)
      :items [
+             [(gui/checkbox
+               :text "start nrepl server on extension load"
+               :selected? (extender/get-setting :nrepl/start-on-load)
+               :listen [:selection
+                        (fn [e]
+                          (->> (gui/selection e)
+                               (extender/set-setting! :nrepl/start-on-load)))])
+              "span, grow, wrap"]
              ["server port:"]
              [nrepl-port "wrap, grow, wmin 250,"]
 
@@ -57,7 +65,7 @@
   []
   (gui/tabbed-panel :placement :top
                     :overflow :scroll
-                    :tabs [{:title "nrepl"
+                    :tabs [{:title "nREPL"
                             :tip "setting nrepl server"
                             :content (make-nrepl-view)}
                            #_{:title "extension"

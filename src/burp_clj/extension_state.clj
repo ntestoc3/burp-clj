@@ -1,4 +1,4 @@
-(ns burp.extension-state
+(ns burp-clj.extension-state
   (:import [burp IExtensionStateListener]))
 
 
