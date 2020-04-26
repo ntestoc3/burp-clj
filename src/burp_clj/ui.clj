@@ -13,8 +13,8 @@
   (let [nrepl-port (gui/text :text (str (nrepl/get-server-port)))
         get-nrepl-btn-txt (fn [started]
                             (if started
-                              "stop nrepl"
-                              "start nrepl"))
+                              "stop nREPL"
+                              "start nREPL"))
         nrepl-start-stop-btn (gui/button
                               :text (-> (nrepl/started?)
                                         get-nrepl-btn-txt)

@@ -3,6 +3,8 @@
             [burp-clj.extension-state :refer [make-unload-callback]]
             [nrepl.server :refer [start-server stop-server]]
             [burp-clj.state :as state]
+            [refactor-nrepl.middleware :as refactor-nrepl]
+            [com.billpiel.sayid.nrepl-middleware :as sayid-middleware]
             [burp-clj.validate :as validate]
             [burp-clj.helper :as helper]))
 
@@ -42,7 +44,9 @@
             _ (helper/log "nrepl starting at:" port)
             nrepl-server (start-server :bind "0.0.0.0"
                                        :port port
-                                       :handler (nrepl-handler))]
+                                       :handler (-> (nrepl-handler)
+                                                    refactor-nrepl/wrap-refactor
+                                                    #_sayid-middleware/wrap-sayid))]
         (swap! state/state assoc :nrepl-server nrepl-server)
         (extender/register-extension-state-listener!
          :nrepl-server
