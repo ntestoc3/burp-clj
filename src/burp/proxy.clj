@@ -1,5 +1,5 @@
 (ns burp.proxy
-  (:require [burp.utils :as utils])
+  (:require [burp.helper :as helper])
   (:import [burp IProxyListener]))
 
 (defn make-proxy-proc [proc-fn]
@@ -10,12 +10,12 @@
 (comment
   (when-not is-req
     (let [req-resp (.getMessageInfo msg)
-          req (utils/analyze-request req-resp)
+          req (helper/analyze-request req-resp)
           resp (-> (.getResponse req-resp)
-                   utils/analyze-response)]
-      (utils/log "request info:" req
-                 "\n"
-                 "response info:" resp)
+                   helper/analyze-response)]
+      (helper/log "request info:" req
+                  "\n"
+                  "response info:" resp)
       (proc-fn {:request req
                 :response resp
                 :message req-resp})))

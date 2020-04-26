@@ -4,11 +4,11 @@
             [clojure.string :as str]
             [burp.context-menu :as context-menu]
             [burp.extender :as extender]
-            [burp.utils :as utils]))
+            [burp.helper :as helper]))
 
 (defn browse-cyber-chef
   [input]
-  (->> (utils/base64-encode input)
+  (->> (helper/base64-encode input)
        (str "https://gchq.github.io/CyberChef/#recipe=Magic(3,false,false,'')&input=" )
        browse-url))
 
@@ -23,7 +23,7 @@
    menu-context
    (fn [invocation]
      (let [txt (context-menu/get-selected-text invocation)]
-       (utils/log "selected text:" txt)
+       (helper/log "cyber-chef selected text:" txt)
        [(gui/menu-item :text "CyberChef Magic"
                        :enabled? (not-empty txt)
                        :listen [:action (fn [e]

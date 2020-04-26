@@ -1,7 +1,15 @@
 (ns burp.extender
   (:require [burp.state :as state]
-            [camel-snake-kebab.core :as csk])
-  (:refer-clojure :exclude [get]))
+            [camel-snake-kebab.core :as csk]
+            [cheshire.core :as json]
+            [clojure.edn :as edn]
+            [clojure.string :as str])
+  (:refer-clojure :exclude [get])
+  (:import [burp
+            ITab
+            IHttpService
+            IHttpRequestResponse
+            IMessageEditorController]))
 
 (defn set!
   [callbacks]
@@ -78,15 +86,144 @@
            (. (:extender @state/state) ~remove-method obj#)
            (remove-callback! ~cb-key k#))))))
 
+;; 鼠标右键上下文菜单
 (defcallback ContextMenuFactory getContextMenuFactories)
+
+;; 扩展状态
 (defcallback ExtensionStateListener getExtensionStateListeners)
+
+;; http事件
 (defcallback HttpListener getHttpListeners)
+
+;; intruder payload处理
 (defcallback IntruderPayloadGeneratorFactory getIntruderPayloadGeneratorFactories)
 (defcallback IntruderPayloadProcessor getIntruderPayloadProcessors)
+
+;; 添加新的message editor tab
 (defcallback MessageEditorTabFactory getMessageEditorTabFactories)
+
+;; proxy事件
 (defcallback ProxyListener getProxyListeners)
+
+;; 扫描器处理
 (defcallback ScannerCheck getScannerChecks)
 (defcallback ScannerInsertionPointProvider getScannerInsertionPointProviders)
 (defcallback ScannerListener getScannerListeners)
+
+;; scope处理
 (defcallback ScopeChangeListener getScopeChangeListeners)
+
+;; session处理
 (defcallback SessionHandlingAction getSessionHandlingActions)
+
+(defn make-http-req
+  ([^IHttpService service ^bytes req]
+   (-> (get)
+       (.makeHttpRequest service req)))
+  ([^String host ^Integer port ^Boolean https ^bytes req]
+   (-> (get)
+       (.makeHttpRequest host port https req))))
+
+(defn get-setting
+  [k]
+  (-> (get)
+      (.loadExtensionSetting (str k))
+      (edn/read-string)))
+
+(defn set-setting!
+  [k v]
+  (-> (get)
+      (.saveExtensionSetting (str k) (pr-str v))))
+
+(defn gen-config-path
+  [path]
+  (->> path
+       (map csk/->snake_case_string)
+       (str/join ".")))
+
+(defn get-project-config
+  "获取项目配置
+  可以指定多个path
+  path格式 [:project-options :connections :out-of-scope-requests] "
+  [& paths]
+  (let [paths (map gen-config-path paths)
+        config (->> (into-array String paths)
+                    (.saveConfigAsJson (get)))]
+    (json/decode config csk/->kebab-case-keyword)))
+
+(defn load-project-config
+  [^String json-conf]
+  (.loadConfigAsJson (get) json-conf))
+
+(defn get-burp-version
+  []
+  (-> (get)
+      (.getBurpVersion)))
+
+(defn get-cookie-jar
+  []
+  (->> (get)
+       (.getCookieJarContents)))
+
+(defn get-extension-path
+  []
+  (-> (get)
+      (.getExtensionFilename)))
+
+(defn add-site-map
+  [^IHttpRequestResponse req-resp]
+  (-> (get)
+      (.addToSiteMap req-resp)))
+
+(defn get-site-map
+  [url]
+  (-> (get)
+      (.getSiteMap url)))
+
+(defn create-message-editor
+  "创建一个burp MessageEditor"
+  [^IMessageEditorController controller ^Boolean editable]
+  (-> (get)
+      (.createMessageEditor controller editable)))
+
+(defn create-text-editor
+  "创建一个burp TextEditor"
+  []
+  (-> (get)
+      (.createTextEditor)))
+
+(defn customize-ui-comp!
+  "对`comp` ui组件使用burp的ui style"
+  [comp]
+  (-> (get)
+      (.customizeUiComponent comp)))
+
+(defn make-tab
+  [caption ui-comp]
+  (reify ITab
+    (getTabCaption [_]
+      caption)
+    (getUiComponent [_]
+      ui-comp)))
+
+(defn add-tab!
+  "添加tab，返回添加后的tab"
+  ([caption ui-comp]
+   (let [tab (make-tab caption ui-comp)]
+     (customize-ui-comp! ui-comp)
+     (add-tab! tab)))
+  ([^ITab tab]
+   (-> (get)
+       (.addSuiteTab tab))
+   tab))
+
+(defn remove-tab!
+  [^ITab tab]
+  (-> (get)
+      (.removeSuiteTab tab)))
+
+
+(defn exit-suit
+  [prompt]
+  (-> (get)
+      (.exitSuite prompt)))

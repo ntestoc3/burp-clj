@@ -9,7 +9,7 @@
 (defn register
   "注册回调"
   [cbs]
-  (.setExtensionName cbs "clojure all in one")
+  (.setExtensionName cbs "clojure plugins")
   (extender/set! cbs)
   (nrepl/start-nrepl)
   (.printOutput cbs "register cyber-chef!")

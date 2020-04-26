@@ -1,6 +1,6 @@
 (ns burp.context-menu
   (:require [seesaw.core :as gui]
-            [burp.utils :as utils])
+            [burp.helper :as helper])
   (:import [burp
             IContextMenuInvocation
             IContextMenuFactory]
@@ -10,7 +10,7 @@
 (defn get-invocation-context
   [invocation]
   (-> (.getInvocationContext invocation)
-      utils/menu-invocation-context-inv))
+      helper/menu-invocation-context-inv))
 
 (defn get-selected-messge
   [invocation]
@@ -30,7 +30,7 @@
             [start end] sel]
         ;; (log (format "sel:[%d %d]" start end))
         (-> (Arrays/copyOfRange data start end)
-            utils/bytes->str)))))
+            helper/bytes->str)))))
 
 (defn make-context-menu
   [supported-context gen-menu-items-fn]
