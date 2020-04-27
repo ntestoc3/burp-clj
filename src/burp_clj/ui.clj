@@ -10,7 +10,7 @@
 
 (defn make-nrepl-view
   []
-  (let [nrepl-port (gui/text :text (str (nrepl/get-server-port)))
+  (let [nrepl-port (gui/text :text (str (nrepl/get-port)))
         get-nrepl-btn-txt (fn [started]
                             (if started
                               "stop nREPL"
@@ -24,14 +24,14 @@
                                  (try
                                    (->> port
                                         Integer/parseInt
-                                        nrepl/set-server-port!)
+                                        nrepl/set-port!)
                                    true
                                    (catch Exception e
                                      (gui/alert e
                                                 (str "not valid port: " port)
                                                 :type :error)
                                      (gui/invoke-later
-                                      (gui/text! nrepl-port (str (nrepl/get-server-port))))
+                                      (gui/text! nrepl-port (str (nrepl/get-port))))
                                      false))))]
     (bind/bind
      state/state
@@ -56,6 +56,28 @@
                           (->> (gui/selection e)
                                (extender/set-setting! :nrepl/start-on-load)))])
               "span, grow, wrap"]
+
+             ["nrepl version:"]
+             [(gui/text :text (nrepl/get-nrepl-version)
+                        :listen [:document
+                                 #(-> (gui/text %)
+                                      nrepl/set-nrepl-version!)])
+              "wrap, grow"]
+
+             ["cider-nrepl version:"]
+             [(gui/text :text (nrepl/get-cider-version)
+                        :listen [:document
+                                 #(-> (gui/text %)
+                                      nrepl/set-cider-version!)])
+              "wrap, grow"]
+
+             ["refactor-nrepl version:"]
+             [(gui/text :text (nrepl/get-refactor-version)
+                        :listen [:document
+                                 #(-> (gui/text %)
+                                      nrepl/set-refactor-version!)])
+              "wrap, grow"]
+
              ["server port:"]
              [nrepl-port "wrap, grow, wmin 250,"]
 

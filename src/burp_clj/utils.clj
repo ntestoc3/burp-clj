@@ -12,50 +12,30 @@
 (def default-repo (merge cemerick.pomegranate.aether/maven-central
                          {"clojars" "https://clojars.org/repo"}))
 
+(def base-class-loader (DynamicClassLoader. (.getClassLoader clojure.lang.Compiler)))
 (defn ensure-dynamic-classloader
   "确保可以动态加载jar"
   []
   (let [thread (Thread/currentThread)
-        context-class-loader (.getContextClassLoader thread)
-        compiler-class-loader (.getClassLoader clojure.lang.Compiler)]
+        context-class-loader (.getContextClassLoader thread)]
     (when-not (instance? DynamicClassLoader context-class-loader)
-      (prn "set new dynamic classloader!!")
-      (.setContextClassLoader
-       thread (DynamicClassLoader. (or context-class-loader
-                                       compiler-class-loader))))))
-
-(defn base-classloader []
-  (let [^DynamicClassLoader cl (RT/baseLoader)]
-    (if-let [^DynamicClassLoader parent (.getParent cl)]
-      parent
-      (or cl (.. Thread currentThread getContextClassLoader)))))
-
-(defn base-classloader-hierarchy []
-  (pg/classloader-hierarchy (base-classloader)))
-
-(defn find-top-classloader [classloaders]
-  (last (filter pg/modifiable-classloader? classloaders)))
-
-(defn get-dynamic-classloader
-  []
-  (try (prn "find top classloader.")
-       (let [cl (-> (base-classloader-hierarchy)
-                    find-top-classloader)]
-         (if cl
-           cl
-           (ensure-dynamic-classloader)))
-       (catch Exception e
-         (ensure-dynamic-classloader))))
+      (prn "set new dynamic classloader for thread:" (.getName thread))
+      (.setContextClassLoader thread base-class-loader))))
 
 (defn add-dep
   [libs & {:keys [repos classloader]
            :or {repos default-repo}}]
-  (let [classloader (or classloader
-                        (ensure-dynamic-classloader))]
-    (doseq  [cl (pg/classloader-hierarchy (get-dynamic-classloader))]
-      (prn cl))
-    (prn (-> (Thread/currentThread)
-             (.getName)) "add deps.")
+  (prn (-> (Thread/currentThread)
+           (.getName))
+       "class paths:")
+  (doseq  [cp (-> (pg/classloader-hierarchy)
+                  pg/get-classpath)]
+    (prn cp))
+  (prn "base class loader paths:")
+  (doseq  [cp (-> (pg/classloader-hierarchy base-class-loader)
+                  pg/get-classpath)]
+    (prn cp))
+  (let [classloader (ensure-dynamic-classloader)]
     (add-dependencies :coordinates libs
                       :repositories repos
                       :classloader classloader)))

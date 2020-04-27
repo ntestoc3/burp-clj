@@ -25,13 +25,16 @@
 (defn cat-msgs
   [objs]
   (->> objs
-       (map pr-str)
+       (map str)
        (str/join " ")))
 
 (defn log
   "输出到插件日志"
   [& objs]
-  (let [s (cat-msgs objs)]
+  (let [s (cat-msgs (-> (Thread/currentThread)
+                        (.getName)
+                        ((partial format "[%s]"))
+                        (cons objs)))]
     (-> (extender/get)
         (.printOutput s))))
 
@@ -43,7 +46,7 @@
 
 (defmacro with-exception-default
   [value & body]
-  `(try ~body
+  `(try ~@body
         (catch Exception e#
           (do (alert "exception:" e#)
               ~value))))

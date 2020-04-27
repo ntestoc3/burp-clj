@@ -13,9 +13,6 @@
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.tcrawley/dynapath "1.1.0"] ;; dynamic class loader
                  [camel-snake-kebab "0.4.1"]
-                 ;; [nrepl "0.7.0"]
-                 ;; [refactor-nrepl "2.5.0"]
-                 ;; [cider/cider-nrepl "0.25.0-alpha1"]
                  [org.swinglabs.swingx/swingx-core "1.6.5-1"]
                  [seesaw "1.5.0"
                   :exclusions [org.swinglabs.swingx/swingx-core]] ; swing GUI

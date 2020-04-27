@@ -16,15 +16,16 @@
        (require '~ns)
        (ns-resolve '~ns '~sym))))
 
-(defn get-server-port
-  []
-  (or (extender/get-setting :nrepl-server/port)
-      2233))
+(extender/defsetting :nrepl-server/port 2233 validate/valid-port?)
+(extender/defsetting :nrepl/nrepl-version "0.7.0")
+(extender/defsetting :nrepl/refactor-version "2.5.0")
+(extender/defsetting :nrepl/cider-version "0.25.0-alpha1")
 
-(defn set-server-port!
-  [port]
-  {:pre [(validate/valid-port? port)]}
-  (extender/set-setting! :nrepl-server/port port))
+(defn load-deps
+  []
+  (utils/add-dep [['nrepl (get-nrepl-version)]
+                  ['refactor-nrepl (get-refactor-version)]
+                  ['cider/cider-nrepl (get-cider-version)]]))
 
 (defn started?
   []
@@ -39,22 +40,14 @@
     (swap! state/state dissoc :nrepl-server)
     (helper/log "nrepl stopped!")))
 
-(defn load-deps
-  []
-  (utils/add-dep '[[nrepl "0.7.0"]
-                   [refactor-nrepl "2.5.0"]
-                   [cider/cider-nrepl "0.25.0-alpha1"]]))
-
 (defn start-nrepl
   []
   (when-not (started?)
     (helper/with-exception-default
       nil
       (load-deps)
-      (let [port (get-server-port)
-            _ (helper/log (-> (Thread/currentThread)
-                              (.getName))
-                          "nrepl starting at:" port )
+      (let [port (get-port)
+            _ (helper/log "nrepl starting at:" port )
             cider-nrepl-handler (dyn-call cider.nrepl/cider-nrepl-handler)
             wrap-refactor (dyn-call refactor-nrepl.middleware/wrap-refactor)
             start-server (dyn-call nrepl.server/start-server)

@@ -20,6 +20,7 @@
   (when (extender/get-setting :nrepl/start-on-load)
     (nrepl/start-nrepl))
   (extender/add-tab! "Clojure Plugin" (ui/make-view))
+
   (helper/log "register ok!"))
 
 
@@ -31,5 +32,7 @@
   (extender/register-proxy-listener! :shiro-check (shiro-check/shiro-check-proxy))
 
   (extender/remove-proxy-listener! :shiro-check)
+
+  (def tab (ui/make-view))
 
   )

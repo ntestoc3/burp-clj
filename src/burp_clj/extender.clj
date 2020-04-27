@@ -18,6 +18,8 @@
 (defn get []
   (:extender @state/state))
 
+
+
 (defn- add-callback!
   "添加回调注册
   `class-k` 类别的key
@@ -134,6 +136,26 @@
   [k v]
   (-> (get)
       (.saveExtensionSetting (str k) (pr-str v))))
+
+(defmacro defsetting
+  [setting-k default-v & [set-arg-validate]]
+  (let [sym (-> setting-k
+                name
+                symbol)
+        get-fn (symbol (str "get-" sym))
+        set-fn (symbol (str "set-" sym "!"))
+        set-arg (symbol "v")]
+    `(do
+       (defn ~get-fn
+         []
+         (or (get-setting ~setting-k)
+             ~default-v))
+
+       (defn ~set-fn
+         [~set-arg]
+         ~(when set-arg-validate
+            `{:pre [(~set-arg-validate ~set-arg)]})
+         (set-setting! ~setting-k ~set-arg)))))
 
 (defn gen-config-path
   [path]
