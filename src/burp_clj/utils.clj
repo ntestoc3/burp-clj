@@ -19,6 +19,7 @@
         context-class-loader (.getContextClassLoader thread)
         compiler-class-loader (.getClassLoader clojure.lang.Compiler)]
     (when-not (instance? DynamicClassLoader context-class-loader)
+      (prn "set new dynamic classloader!!")
       (.setContextClassLoader
        thread (DynamicClassLoader. (or context-class-loader
                                        compiler-class-loader))))))
@@ -35,13 +36,24 @@
 (defn find-top-classloader [classloaders]
   (last (filter pg/modifiable-classloader? classloaders)))
 
+(defn get-dynamic-classloader
+  []
+  (try (prn "find top classloader.")
+       (let [cl (-> (base-classloader-hierarchy)
+                    find-top-classloader)]
+         (if cl
+           cl
+           (ensure-dynamic-classloader)))
+       (catch Exception e
+         (ensure-dynamic-classloader))))
+
 (defn add-dep
   [libs & {:keys [repos classloader]
            :or {repos default-repo}}]
   (let [classloader (or classloader
-                        (try (-> (base-classloader-hierarchy)
-                                 find-top-classloader)
-                             (catch Exception e nil)))]
+                        (ensure-dynamic-classloader))]
+    (prn (-> (Thread/currentThread)
+             (.getName)) "add deps.")
     (add-dependencies :coordinates libs
                       :repositories repos
                       :classloader classloader)))

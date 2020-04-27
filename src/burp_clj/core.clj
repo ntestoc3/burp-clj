@@ -16,7 +16,6 @@
   [cbs]
   (.setExtensionName cbs "Clojure Plugin")
   (extender/set! cbs)
-  (utils/ensure-dynamic-classloader)
   (helper/log "register clojure plugin version: " (version/get-version2))
   (when (extender/get-setting :nrepl/start-on-load)
     (nrepl/start-nrepl))

@@ -52,7 +52,9 @@
       nil
       (load-deps)
       (let [port (get-server-port)
-            _ (helper/log "nrepl starting at:" port)
+            _ (helper/log (-> (Thread/currentThread)
+                              (.getName))
+                          "nrepl starting at:" port )
             cider-nrepl-handler (dyn-call cider.nrepl/cider-nrepl-handler)
             wrap-refactor (dyn-call refactor-nrepl.middleware/wrap-refactor)
             start-server (dyn-call nrepl.server/start-server)
