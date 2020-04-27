@@ -52,6 +52,8 @@
            :or {repos default-repo}}]
   (let [classloader (or classloader
                         (ensure-dynamic-classloader))]
+    (doseq  [cl (pg/classloader-hierarchy (get-dynamic-classloader))]
+      (prn cl))
     (prn (-> (Thread/currentThread)
              (.getName)) "add deps.")
     (add-dependencies :coordinates libs
