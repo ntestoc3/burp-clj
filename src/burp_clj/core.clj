@@ -5,7 +5,9 @@
             [burp-clj.version :as version]
             [burp-clj.helper :as helper]
             [burp-clj.cyber-chef :as cyber-chef]
-            [burp-clj.shiro-check :as shiro-check])
+            [burp-clj.shiro-check :as shiro-check]
+            [burp-clj.utils :as utils])
+  (:gen-class)
   )
 
 ;;; 必须存在，extension加载时执行
@@ -14,6 +16,7 @@
   [cbs]
   (.setExtensionName cbs "Clojure Plugin")
   (extender/set! cbs)
+  (utils/ensure-dynamic-classloader)
   (helper/log "register clojure plugin version: " (version/get-version2))
   (when (extender/get-setting :nrepl/start-on-load)
     (nrepl/start-nrepl))

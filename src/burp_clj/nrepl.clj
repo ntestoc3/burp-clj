@@ -1,16 +1,20 @@
 (ns burp-clj.nrepl
   (:require [burp-clj.extender :as extender]
             [burp-clj.extension-state :refer [make-unload-callback]]
-            [nrepl.server :refer [start-server stop-server]]
             [burp-clj.state :as state]
-            [refactor-nrepl.middleware :as refactor-nrepl]
-            [com.billpiel.sayid.nrepl-middleware :as sayid-middleware]
+            [burp-clj.utils :as utils]
             [burp-clj.validate :as validate]
             [burp-clj.helper :as helper]))
 
-(defn nrepl-handler []
-  (require 'cider.nrepl)
-  (ns-resolve 'cider.nrepl 'cider-nrepl-handler))
+(defmacro dyn-call
+  [ns-sym]
+  (let [ns (-> (namespace ns-sym)
+               symbol)
+        sym (-> (name ns-sym)
+                symbol)]
+    `(do
+       (require '~ns)
+       (ns-resolve '~ns '~sym))))
 
 (defn get-server-port
   []
@@ -31,22 +35,32 @@
   []
   (when-let [server (:nrepl-server @state/state)]
     (extender/remove-extension-state-listener! :nrepl-server)
-    (stop-server server)
+    ((dyn-call nrepl.server/stop-server) server)
     (swap! state/state dissoc :nrepl-server)
     (helper/log "nrepl stopped!")))
+
+(defn load-deps
+  []
+  (utils/add-dep '[[nrepl "0.7.0"]
+                   [refactor-nrepl "2.5.0"]
+                   [cider/cider-nrepl "0.25.0-alpha1"]]))
 
 (defn start-nrepl
   []
   (when-not (started?)
     (helper/with-exception-default
       nil
+      (load-deps)
       (let [port (get-server-port)
             _ (helper/log "nrepl starting at:" port)
-            nrepl-server (start-server :bind "0.0.0.0"
-                                       :port port
-                                       :handler (-> (nrepl-handler)
-                                                    refactor-nrepl/wrap-refactor
-                                                    #_sayid-middleware/wrap-sayid))]
+            cider-nrepl-handler (dyn-call cider.nrepl/cider-nrepl-handler)
+            wrap-refactor (dyn-call refactor-nrepl.middleware/wrap-refactor)
+            start-server (dyn-call nrepl.server/start-server)
+            nrepl-server (start-server
+                          :bind "0.0.0.0"
+                          :port port
+                          :handler (-> cider-nrepl-handler
+                                       wrap-refactor))]
         (swap! state/state assoc :nrepl-server nrepl-server)
         (extender/register-extension-state-listener!
          :nrepl-server

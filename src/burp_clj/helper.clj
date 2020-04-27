@@ -42,7 +42,7 @@
         (.issueAlert s))))
 
 (defmacro with-exception-default
-  [value body]
+  [value & body]
   `(try ~body
         (catch Exception e#
           (do (alert "exception:" e#)

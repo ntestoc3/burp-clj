@@ -1,5 +1,6 @@
 (ns burp-clj.scripts
-  (:require [version-clj.core :as version]))
+  (:require [version-clj.core :as version]
+            [burp-clj.utils :as utils]))
 
 (def burp-clj-clj-version "0.0.1")
 
@@ -24,11 +25,21 @@
    :scope-change-listeners []
    :session-handling-actions []
    :tabs []
-   })
+   }
+
+  )
+
 
 (defn reg-script!
   "注册一个script"
   [info]
   (update db :scripts conj info))
 
+(defn add-script-source!
+  [source]
+  (update db :source conj source))
+
+(defn add-scripts!
+  []
+  )
 

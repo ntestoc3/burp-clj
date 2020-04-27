@@ -3,16 +3,48 @@
             [clojure.pprint :as pp]
             [camel-snake-kebab.core :as csk]
             [clojure.tools.gitlibs :as gitlib]
-            [cemerick.pomegranate :refer [add-dependencies]]
-            [clojure.string :as str]))
+            [cemerick.pomegranate :as pg :refer [add-dependencies]]
+            [clojure.string :as str])
+  (:import [clojure.lang DynamicClassLoader RT])
+  )
 
 ;;;;;;;;;;;;;;;; dep helper
 (def default-repo (merge cemerick.pomegranate.aether/maven-central
                          {"clojars" "https://clojars.org/repo"}))
+
+(defn ensure-dynamic-classloader
+  "确保可以动态加载jar"
+  []
+  (let [thread (Thread/currentThread)
+        context-class-loader (.getContextClassLoader thread)
+        compiler-class-loader (.getClassLoader clojure.lang.Compiler)]
+    (when-not (instance? DynamicClassLoader context-class-loader)
+      (.setContextClassLoader
+       thread (DynamicClassLoader. (or context-class-loader
+                                       compiler-class-loader))))))
+
+(defn base-classloader []
+  (let [^DynamicClassLoader cl (RT/baseLoader)]
+    (if-let [^DynamicClassLoader parent (.getParent cl)]
+      parent
+      (or cl (.. Thread currentThread getContextClassLoader)))))
+
+(defn base-classloader-hierarchy []
+  (pg/classloader-hierarchy (base-classloader)))
+
+(defn find-top-classloader [classloaders]
+  (last (filter pg/modifiable-classloader? classloaders)))
+
 (defn add-dep
-  [libs & {:keys [repos]
+  [libs & {:keys [repos classloader]
            :or {repos default-repo}}]
-  (add-dependencies :coordinates libs :repositories repos))
+  (let [classloader (or classloader
+                        (try (-> (base-classloader-hierarchy)
+                                 find-top-classloader)
+                             (catch Exception e nil)))]
+    (add-dependencies :coordinates libs
+                      :repositories repos
+                      :classloader classloader)))
 
 (defn git-checkout
   "根据`rev` checkout git项目，

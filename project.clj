@@ -13,16 +13,16 @@
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.tcrawley/dynapath "1.1.0"] ;; dynamic class loader
                  [camel-snake-kebab "0.4.1"]
-                 [nrepl "0.7.0"]
-                 [refactor-nrepl "2.5.0"]
-                 [com.billpiel/sayid "0.0.18"]
-                 [cider/cider-nrepl "0.25.0-alpha1"]
+                 ;; [nrepl "0.7.0"]
+                 ;; [refactor-nrepl "2.5.0"]
+                 ;; [cider/cider-nrepl "0.25.0-alpha1"]
                  [org.swinglabs.swingx/swingx-core "1.6.5-1"]
                  [seesaw "1.5.0"
                   :exclusions [org.swinglabs.swingx/swingx-core]] ; swing GUI
                  [org.clojure/tools.gitlibs "1.0.83"] ;; git download
                  [cheshire "5.10.0"]
                  [version-clj "0.1.2"]
+                 [me.raynes/fs "1.4.6"] ;; fs utils
                  ;; [buddy/buddy-core "1.6.0"] ;; encrypt
                  ]
   :java-source-paths ["java-src"]
