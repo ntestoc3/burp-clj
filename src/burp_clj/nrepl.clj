@@ -4,7 +4,8 @@
             [burp-clj.state :as state]
             [burp-clj.utils :as utils]
             [burp-clj.validate :as validate]
-            [burp-clj.helper :as helper]))
+            [burp-clj.helper :as helper]
+            [taoensso.timbre :as log]))
 
 (defmacro dyn-call
   [ns-sym]
@@ -38,7 +39,7 @@
     (extender/remove-extension-state-listener! :nrepl-server)
     ((dyn-call nrepl.server/stop-server) server)
     (swap! state/state dissoc :nrepl-server)
-    (helper/log "nrepl stopped!")))
+    (log/info "nrepl stopped!")))
 
 (defn start-nrepl
   []
@@ -47,7 +48,7 @@
       nil
       (load-deps)
       (let [port (get-port)
-            _ (helper/log "nrepl starting at:" port )
+            _ (log/info "nrepl starting at:" port )
             cider-nrepl-handler (dyn-call cider.nrepl/cider-nrepl-handler)
             wrap-refactor (dyn-call refactor-nrepl.middleware/wrap-refactor)
             start-server (dyn-call nrepl.server/start-server)
@@ -60,5 +61,5 @@
         (extender/register-extension-state-listener!
          :nrepl-server
          (make-unload-callback stop-nrepl))
-        (helper/log "nrepl started.")))))
+        (log/info "nrepl started.")))))
 

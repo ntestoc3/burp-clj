@@ -2,6 +2,8 @@
   (:require [burp-clj.state :as state]
             [camel-snake-kebab.core :as csk]
             [cheshire.core :as json]
+            [clojure.spec.alpha :as s]
+            [burp-clj.specs :as specs]
             [clojure.edn :as edn]
             [clojure.string :as str])
   (:refer-clojure :exclude [get])
@@ -244,6 +246,17 @@
   (-> (get)
       (.removeSuiteTab tab)))
 
+(defn register-add-tab!
+  [k {:keys [captain view] :as tab}]
+  {:pre (s/valid? ::specs/tab tab)}
+  (let [tab (add-tab! captain view)]
+    (add-callback! :tabs k tab)))
+
+(defn remove-registered-tab!
+  [k]
+  (when-let [tab (get-callback-obj :tabs k)]
+    (remove-tab! tab)
+    (remove-callback! :tabs k)))
 
 (defn exit-suit
   [prompt]

@@ -3,6 +3,8 @@
             [clojure.pprint :as pp]
             [camel-snake-kebab.core :as csk]
             [clojure.tools.gitlibs :as gitlib]
+            [taoensso.timbre :as log]
+            [taoensso.timbre.appenders.core :as appenders]
             [cemerick.pomegranate :as pg :refer [add-dependencies]]
             [clojure.string :as str])
   (:import [clojure.lang DynamicClassLoader RT])
@@ -39,14 +41,23 @@
     (add-dependencies :coordinates libs
                       :repositories repos
                       :classloader classloader)))
+(defn gen-gitkey
+  [url]
+  (->> (str/split url #"/")
+       (take-last 2)
+       (apply keyword )))
 
 (defn git-checkout
   "根据`rev` checkout git项目，
   成功则返回项目文件夹路径
   失败返回nil
   `key`用于checkout的keyword标识，必须带namespace"
-  [url key rev]
-  (gitlib/procure url key rev))
+  ([url] (git-checkout url "master"))
+  ([url rev]  (git-checkout url
+                            (gen-gitkey url)
+                            rev))
+  ([url key rev]
+   (gitlib/procure url key rev)))
 
 ;;;;;;;;;;;;; class helper
 (defn get-classinfo
@@ -87,4 +98,36 @@
     `(do
        (def ~map-name ~field-map)
        (def ~inv-map-name ~inv-filed-map))))
+
+;;;;;; log helper
+(defn log-time-format! []
+  (log/merge-config!
+   {:timestamp-opts
+    {:pattern "yyyy/MM/dd HH:mm:ss"
+     :locale (java.util.Locale/getDefault)
+     :timezone (java.util.TimeZone/getDefault)}}))
+
+(defn make-log-appender
+  "日志添加器
+  `log-fn`"
+  [log-fn]
+  {:enabled? true
+   :async? true
+   :min-level nil
+   :rate-limit nil
+   :output-fn :inherit
+   :fn log-fn})
+
+(defn log-add-appender!
+  "添加日志记录项"
+  [appender]
+  (log/merge-config!
+   {:appenders appender}))
+
+(defn log-to-fn!
+  "配置log输出到函数回调
+  `fn-key`为log appender的键"
+  [fn-key log-fn]
+  (log-add-appender! {fn-key (make-log-appender log-fn)}))
+
 

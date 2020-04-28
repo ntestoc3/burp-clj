@@ -20,6 +20,7 @@
                  [cheshire "5.10.0"]
                  [version-clj "0.1.2"]
                  [me.raynes/fs "1.4.6"] ;; fs utils
+                 [com.taoensso/timbre "4.10.0"]  ;; logger
                  ;; [buddy/buddy-core "1.6.0"] ;; encrypt
                  ]
   :java-source-paths ["java-src"]

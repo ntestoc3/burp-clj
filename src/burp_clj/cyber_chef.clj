@@ -2,6 +2,7 @@
   (:require [seesaw.core :as gui]
             [clojure.java.browse :refer [browse-url]]
             [clojure.string :as str]
+            [taoensso.timbre :as log]
             [burp-clj.context-menu :as context-menu]
             [burp-clj.extender :as extender]
             [burp-clj.helper :as helper]))
@@ -23,7 +24,7 @@
    menu-context
    (fn [invocation]
      (let [txt (context-menu/get-selected-text invocation)]
-       (helper/log "cyber-chef selected text:" txt)
+       (log/info "cyber-chef selected text:" txt)
        [(gui/menu-item :text "CyberChef Magic"
                        :enabled? (not-empty txt)
                        :listen [:action (fn [e]

@@ -5,7 +5,7 @@
   (:gen-class))
 
 (defn get-version []
-  (-> (eval 'burp-clj.version)
+  (-> (eval 'burp_clj.version)
       .getPackage
       .getImplementationVersion))
 

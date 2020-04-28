@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]
             [clojure.java.io :refer [as-url]]
             [burp-clj.extender :as extender]
+            [taoensso.timbre :as log]
             [burp-clj.utils :refer [def-enum-fileds-map]])
   (:refer-clojure :exclude [alert])
   (:import [burp
@@ -48,7 +49,7 @@
   [value & body]
   `(try ~@body
         (catch Exception e#
-          (do (alert "exception:" e#)
+          (do (log/error e#)
               ~value))))
 
 (defn remove-all-proxy-listeners []
