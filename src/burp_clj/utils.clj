@@ -160,6 +160,10 @@
      (-> f gui/pack! gui/show!)
      f)))
 
+(defn table-model-listener
+  [handler]
+  (reify javax.swing.event.TableModelListener
+    (tableChanged [this e] (handler e))))
 
 ;;;; object helper
 (defmacro override-delegate

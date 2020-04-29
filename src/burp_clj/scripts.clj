@@ -11,6 +11,10 @@
 
 (def db (atom {}))
 
+(defn get-script-source
+  []
+  (get @db :source))
+
 (defn add-script-source!
   "添加脚本源，可以是git地址，或者目录"
   [source]
@@ -45,7 +49,7 @@
 
     (log/warn :load-scripts! "unsupport type:" type)))
 
-(defn get-all-scripts
+(defn get-scripts
   []
   (:scripts @db))
 
@@ -55,7 +59,7 @@
 
 (defn set-script-running!
   [script-k running]
-  (swap! db update assoc-in [:scripts :running] running))
+  (swap! db update :scripts assoc-in [script-k :running] running))
 
 (defn enable-script!
   [script-k]

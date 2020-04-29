@@ -2,9 +2,13 @@
   (:require [seesaw.core :as gui]
             [seesaw.bind :as bind]
             [seesaw.border :as border]
+            [seesaw.color :as color]
             [burp-clj.state :as state]
             [seesaw.mig :refer [mig-panel]]
             [burp-clj.extender :as extender]
+            [burp-clj.script-table :as script-table]
+            [burp-clj.utils :as utils]
+            [burp-clj.scripts :as script]
             [burp-clj.helper :as helper]
             [burp-clj.nrepl :as nrepl]))
 
@@ -82,6 +86,52 @@
              [nrepl-port "wrap, grow, wmin 250,"]
 
              [nrepl-start-stop-btn "span, grow"]])))
+
+(defn make-header
+  [text]
+  (gui/label :text text
+             :font (seesaw.font/font :name :monospaced
+                                     :style :bold
+                                     :size 16)
+             :foreground :darkorange))
+
+(defn script-source-form
+  []
+  (mig-panel
+   :border (border/empty-border :left 10 :top 10)
+   :items [[(make-header "Script Source")
+            "span, grow, wrap"]
+
+           [(gui/button :text "Add"
+                        :listen [:action (fn [e]
+                                           (-> (gui/dialog
+                                                :content (gui/flow-panel :items
+                                                                         ["Enter script source"
+                                                                          (gui/text :id :source)])
+                                                :option-type :ok-cancel
+                                                :success-fn (fn [p]
+                                                              (-> (gui/text p)
+                                                                  (script/add-script-source!))
+                                                              ))
+                                               (gui/show!)))])
+            "grow"]
+
+           [(gui/listbox :model (script/get-script-source))
+            "spany 3, grow, wrap"]
+
+           [(gui/button :text "Remove")
+            "grow, wrap"]
+
+           [(gui/button :text "Up")
+            "grow, wrap"]
+
+           [(gui/button :text "Down")
+            "grow,wrap"]
+
+           [(gui/button :text "Reload Scripts!")
+            "grow,wrap"]
+           ]))
+
 
 (defn make-script-view
   []
