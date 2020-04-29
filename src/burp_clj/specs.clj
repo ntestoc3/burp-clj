@@ -18,7 +18,7 @@
 
 (s/def ::tab (s/keys :req-un [:tab/captain :tab/view]))
 
-(s/def :burp/content-menu validate/valid-context-menu-factory?)
+(s/def :burp/context-menu validate/valid-context-menu-factory?)
 (s/def :burp/extension-state-listener validate/valid-extension-state-listener?)
 (s/def :burp/http-listener validate/valid-http-listener?)
 (s/def :burp/intruder-payload-generator validate/valid-intruder-payload-generator-factory?)
@@ -37,7 +37,7 @@
 (s/def :script/min-burp-clj-version string?)
 (s/def :script/enable-callback fn?)
 (s/def :script/disable-callback fn?)
-(s/def :script/content-menu (s/every-kv keyword? :burp/content-menu))
+(s/def :script/context-menu (s/every-kv keyword? :burp/context-menu))
 (s/def :script/extension-state-listener (s/every-kv keyword? :burp/extension-state-listener))
 (s/def :script/http-listener (s/every-kv keyword? :burp/http-listener))
 (s/def :script/intruder-payload-generator (s/every-kv keyword? :burp/intruder-payload-generator))
@@ -53,10 +53,11 @@
 
 (s/def ::script-info (s/keys :req-un [:script/name
                                       :script/version
-                                      :script/min-burp-clj-version
+                                      :script/min-burp-clj-version]
+                             :opt-un [
                                       :script/enable-callback
-                                      :script/disable-callback]
-                             :opt-un [:script/content-menu
+                                      :script/disable-callback
+                                      :script/context-menu
                                       :script/extension-state-listener
                                       :script/http-listener
                                       :script/intruder-payload-generator

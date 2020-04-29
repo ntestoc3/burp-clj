@@ -4,6 +4,7 @@
             [cheshire.core :as json]
             [clojure.spec.alpha :as s]
             [burp-clj.specs :as specs]
+            [taoensso.timbre :as log]
             [clojure.edn :as edn]
             [clojure.string :as str])
   (:refer-clojure :exclude [get])
@@ -49,14 +50,14 @@
         cb-key (csk/->kebab-case-keyword callback)
         register-method (-> (str "register" callback)
                             csk/->camelCaseSymbol)
-        register-name (-> (str "register" cb-name "!")
-                          csk/->kebab-case-symbol)
+        register-name-s (str "register" cb-name "!")
+        register-name (csk/->kebab-case-symbol register-name-s)
         registered? (-> (str cb-name "-registered?")
                         csk/->kebab-case-symbol)
         remove-method (-> (str "remove" cb-name)
                           csk/->camelCaseSymbol)
-        remove-name (-> (str "remove" cb-name "!")
-                        csk/->kebab-case-symbol)
+        remove-name-s (str "remove" cb-name "!")
+        remove-name (csk/->kebab-case-symbol remove-name-s)
         get-by-key (-> (str "get" cb-name "ByKey")
                        csk/->kebab-case-symbol)
         get-all-method get-cb-method-name
@@ -70,14 +71,20 @@
              boolean))
 
        (defn ~register-name [k# cb#]
-         (when-not (~registered? k#)
-           (. (:extender @state/state) ~register-method cb#)
-           (add-callback! ~cb-key k# cb#)))
+         (if (~registered? k#)
+           (log/warn ~register-name-s "already registered:" k#)
+           (do
+             (log/info ~register-name-s k#)
+             (. (:extender @state/state) ~register-method cb#)
+             (add-callback! ~cb-key k# cb#))))
 
        (defn ~remove-name [k#]
-         (when-let [cb# (get-callback-obj ~cb-key k#)]
-           (. (:extender @state/state) ~remove-method cb#)
-           (remove-callback! ~cb-key k#)))
+         (if-let [cb# (get-callback-obj ~cb-key k#)]
+           (do
+             (log/info ~remove-name-s k#)
+             (. (:extender @state/state) ~remove-method cb#)
+             (remove-callback! ~cb-key k#))
+           (log/warn ~remove-name-s "not found:" k#)))
 
        (defn ~get-by-key [k#]
          (get-callback-obj ~cb-key k#))
@@ -86,6 +93,7 @@
          (. (:extender @state/state) ~get-all-method))
 
        (defn ~remove-all-name []
+         (log/info ~remove-all-name)
          (doseq [[k# obj#] (get-callbacks ~cb-key)]
            (. (:extender @state/state) ~remove-method obj#)
            (remove-callback! ~cb-key k#))))))
@@ -252,7 +260,7 @@
   (let [tab (add-tab! captain view)]
     (add-callback! :tabs k tab)))
 
-(defn remove-registered-tab!
+(defn register-remove-tab!
   [k]
   (when-let [tab (get-callback-obj :tabs k)]
     (remove-tab! tab)

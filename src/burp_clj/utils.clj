@@ -6,6 +6,7 @@
             [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]
             [cemerick.pomegranate :as pg :refer [add-dependencies]]
+            [seesaw.core :as gui]
             [clojure.string :as str]
             [me.raynes.fs :as fs])
   (:import [clojure.lang DynamicClassLoader RT])
@@ -148,3 +149,32 @@
   (if (fs/absolute? path)
     (load-file path)
     (load-file (str (fs/file fs/*cwd* path)))))
+
+;;; ui
+(defn show-ui
+  ([widget]
+   (gui/native!)
+   (let [f (gui/frame :title "test ui"
+                      :on-close :dispose
+                      :content widget)]
+     (-> f gui/pack! gui/show!)
+     f)))
+
+
+;;;; object helper
+(defmacro override-delegate
+  "重写`delegate`对象的某些方法"
+  [type delegate & body]
+  (let [d (gensym)
+        overrides (group-by first body)
+        methods (for [m (.getMethods (resolve type))
+                      :let [f (-> (.getName m)
+                                  symbol
+                                  (with-meta {:tag (-> m .getReturnType .getName)}))]
+                      :when (not (overrides f))
+                      :let [args (for [t (.getParameterTypes m)]
+                                   (with-meta (gensym) {:tag (.getName t)}))]]
+                  (list f (vec (conj args 'this))
+                        `(. ~d ~f ~@(map #(with-meta % nil) args))))]
+    `(let [~d ~delegate]
+       (reify ~type ~@body ~@methods))))

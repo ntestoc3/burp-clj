@@ -83,6 +83,47 @@
 
              [nrepl-start-stop-btn "span, grow"]])))
 
+(defn make-script-view
+  []
+  (mig-panel
+   :border (border/empty-border :left 10 :top 10)
+   :items [
+           [(gui/checkbox
+             :text "start nrepl server on extension load"
+             :selected? (extender/get-setting :nrepl/start-on-load)
+             :listen [:selection
+                      (fn [e]
+                        (->> (gui/selection e)
+                             (extender/set-setting! :nrepl/start-on-load)))])
+            "span, grow, wrap"]
+
+           ["nrepl version:"]
+           [(gui/text :text (nrepl/get-nrepl-version)
+                      :listen [:document
+                               #(-> (gui/text %)
+                                    nrepl/set-nrepl-version!)])
+            "wrap, grow"]
+
+           ["cider-nrepl version:"]
+           [(gui/text :text (nrepl/get-cider-version)
+                      :listen [:document
+                               #(-> (gui/text %)
+                                    nrepl/set-cider-version!)])
+            "wrap, grow"]
+
+           ["refactor-nrepl version:"]
+           [(gui/text :text (nrepl/get-refactor-version)
+                      :listen [:document
+                               #(-> (gui/text %)
+                                    nrepl/set-refactor-version!)])
+            "wrap, grow"]
+
+           ["server port:"]
+           [nrepl-port "wrap, grow, wmin 250,"]
+
+           [nrepl-start-stop-btn "span, grow"]])
+  )
+
 (defn make-view
   []
   (gui/tabbed-panel :placement :top
