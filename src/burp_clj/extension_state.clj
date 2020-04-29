@@ -1,4 +1,5 @@
 (ns burp-clj.extension-state
+  (:require [burp-clj.helper :as helper])
   (:import [burp IExtensionStateListener]))
 
 
@@ -6,4 +7,6 @@
   [callback-fn]
   (reify IExtensionStateListener
     (extensionUnloaded [_]
-      (callback-fn))))
+      (helper/with-exception-default
+        nil
+        (callback-fn)))))

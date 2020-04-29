@@ -46,11 +46,13 @@
 
 (defn load-dir-scripts
   [dir]
-  (doseq [clj (->> (-> (fs/file dir)
-                       (fs/glob "*.clj"))
-                   (map str))]
-    (log/info :load-script clj)
-    (load-file clj)))
+  (utils/add-cp dir)
+  (fs/with-cwd dir
+    (doseq [clj (->> (-> (fs/file dir)
+                         (fs/glob "*.clj"))
+                     (map str))]
+      (log/info :load-script clj)
+      (load-file clj))))
 
 (defn load-scripts!
   [type target]
@@ -82,6 +84,7 @@
 (defn reg-script!
   "注册一个script"
   [info]
+  {:pre [(s/valid? ::specs/script-info info)]}
   (let [old-info (get-script (:name info))]
     ;; 如果有同名的脚本，并且新注册的版本号小于旧的版本号，则不更新
     (if (and old-info
@@ -114,10 +117,10 @@
            session-handling-action
            tab
            ]
-    script-info}]
+    :as script-info}]
   (log/info :enable-script! name)
   (when content-menu
-    (doseq [[k v] content-menus]
+    (doseq [[k v] content-menu]
       (extender/register-context-menu-factory! k v)))
   (when extension-state-listener
     (doseq [[k v] extension-state-listener]
@@ -165,22 +168,6 @@
   (when tab
     (doseq [[k v] tab]
       (extender/add-tab! k v)))
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
   )
 
 

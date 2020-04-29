@@ -37,4 +37,35 @@
 (s/def :script/min-burp-clj-version string?)
 (s/def :script/enable-callback fn?)
 (s/def :script/disable-callback fn?)
+(s/def :script/content-menu (s/every-kv keyword? :burp/content-menu))
+(s/def :script/extension-state-listener (s/every-kv keyword? :burp/extension-state-listener))
+(s/def :script/http-listener (s/every-kv keyword? :burp/http-listener))
+(s/def :script/intruder-payload-generator (s/every-kv keyword? :burp/intruder-payload-generator))
+(s/def :script/intruder-payload-processor (s/every-kv keyword? :burp/intruder-payload-processor))
+(s/def :script/message-editor-tab (s/every-kv keyword? :burp/message-editor-tab))
+(s/def :script/proxy-listener (s/every-kv keyword? :burp/proxy-listener))
+(s/def :script/scanner-check (s/every-kv keyword? :burp/scanner-check))
+(s/def :script/scanner-insertion-point-provider (s/every-kv keyword? :burp/scanner-insertion-point-provider))
+(s/def :script/scanner-listener (s/every-kv keyword? :burp/scanner-listener))
+(s/def :script/scope-change-listener (s/every-kv keyword? :burp/scope-change-listener))
+(s/def :script/session-handling-action (s/every-kv keyword? :burp/session-handling-action))
+(s/def :script/tab (s/every-kv keyword? ::tab))
 
+(s/def ::script-info (s/keys :req-un [:script/name
+                                      :script/version
+                                      :script/min-burp-clj-version
+                                      :script/enable-callback
+                                      :script/disable-callback]
+                             :opt-un [:script/content-menu
+                                      :script/extension-state-listener
+                                      :script/http-listener
+                                      :script/intruder-payload-generator
+                                      :script/intruder-payload-processor
+                                      :script/message-editor-tab
+                                      :script/proxy-listener
+                                      :script/scanner-check
+                                      :script/scanner-insertion-point-provider
+                                      :script/scanner-listener
+                                      :script/scope-change-listener
+                                      :script/session-handling-action
+                                      :script/tab]))

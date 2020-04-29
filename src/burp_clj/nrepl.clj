@@ -36,10 +36,18 @@
 (defn stop-nrepl
   []
   (when-let [server (:nrepl-server @state/state)]
-    (extender/remove-extension-state-listener! :nrepl-server)
+    ;; 如果是在extension-state-listener中执行，则不能remove，会修改注册的list
+    ;; 造成java.util.ConcurrentModificationException
+    ;; (extender/remove-extension-state-listener! :nrepl-server)
     ((dyn-call nrepl.server/stop-server) server)
     (swap! state/state dissoc :nrepl-server)
     (log/info "nrepl stopped!")))
+
+(defn wrap-classloader
+  [h]
+  (fn [msg]
+    (utils/ensure-dynamic-classloader)
+    (h msg)))
 
 (defn start-nrepl
   []
@@ -47,6 +55,8 @@
     (helper/with-exception-default
       nil
       (load-deps)
+      ;; (log/info :start-nrepl :refactor-nrepl-version
+      ;;           ((dyn-call refactor-nrepl.core/version)))
       (let [port (get-port)
             _ (log/info "nrepl starting at:" port )
             cider-nrepl-handler (dyn-call cider.nrepl/cider-nrepl-handler)
@@ -56,7 +66,8 @@
                           :bind "0.0.0.0"
                           :port port
                           :handler (-> cider-nrepl-handler
-                                       wrap-refactor))]
+                                       wrap-refactor
+                                       wrap-classloader))]
         (swap! state/state assoc :nrepl-server nrepl-server)
         (extender/register-extension-state-listener!
          :nrepl-server

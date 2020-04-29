@@ -6,7 +6,8 @@
             [taoensso.timbre :as log]
             [taoensso.timbre.appenders.core :as appenders]
             [cemerick.pomegranate :as pg :refer [add-dependencies]]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [me.raynes.fs :as fs])
   (:import [clojure.lang DynamicClassLoader RT])
   )
 
@@ -23,6 +24,15 @@
     (when-not (instance? DynamicClassLoader context-class-loader)
       (prn "set new dynamic classloader for thread:" (.getName thread))
       (.setContextClassLoader thread base-class-loader))))
+
+(defn add-cp
+  [jar-or-dir]
+  (pg/add-classpath jar-or-dir base-class-loader))
+
+(defn prn-cp
+  []
+  (-> (pg/get-classpath [base-class-loader])
+      clojure.pprint/pprint))
 
 (defn add-dep
   [libs & {:keys [repos classloader]
@@ -130,4 +140,11 @@
   [fn-key log-fn]
   (log-add-appender! {fn-key (make-log-appender log-fn)}))
 
-
+;;; load-file 代替，修正路径
+(defn load-script
+  "相对路径使用*cwd*加载clj文件
+  绝对路径直接加载"
+  [path]
+  (if (fs/absolute? path)
+    (load-file path)
+    (load-file (str (fs/file fs/*cwd* path)))))

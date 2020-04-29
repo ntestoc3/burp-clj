@@ -15,8 +15,7 @@
 (defn logger
   [data]
   (let [{:keys [output_ level error-level?]} data
-        formatted-output-str (-> (force output_)
-                                 (str "\n"))]
+        formatted-output-str (force output_)]
     (if error-level?
       (helper/alert formatted-output-str)
       (helper/log formatted-output-str))))
@@ -32,7 +31,7 @@
 
   (utils/log-to-fn! :plugin-log logger)
 
-  (log/info :register "register clojure plugin version: " (version/get-version))
+  (log/info :register "clojure plugin version:" (version/get-version))
   (when (extender/get-setting :nrepl/start-on-load)
     (nrepl/start-nrepl))
   (extender/add-tab! "Clojure Plugin" (ui/make-view))
