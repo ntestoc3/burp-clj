@@ -21,7 +21,7 @@
              :font (seesaw.font/font :name :monospaced
                                      :style :bold
                                      :size 16)
-             :foreground "#C84625"))
+             :foreground "#ff6633"))
 
 (def burp-img (delay (-> (io/resource "resources/Media/icon32.png" (.getClassLoader burp.ICookie))
                          icon/icon
@@ -34,7 +34,7 @@
              :modal? true
              :content (mig-panel
                        :border (border/empty-border :left 10 :top 10)
-                       :items [["Enter script source:"
+                       :items [["Enter scripts source:"
                                 "wrap"]
                                [(gui/text :id :source)
                                 "grow, wmin 300"]])
@@ -124,7 +124,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
   []
   (mig-panel
    ;; :border (border/empty-border :left 10 :top 10)
-   :items [[(make-header "Script Source")
+   :items [[(make-header "Scripts Source")
             "span, grow, wrap"]
 
            [(gui/button :text "Add"

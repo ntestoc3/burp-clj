@@ -6,7 +6,8 @@
             [burp-clj.state :as state]
             [burp-clj.utils :refer [def-enum-fileds-map]])
   (:refer-clojure :exclude [alert])
-  (:import [burp
+  (:import javax.swing.JTabbedPane
+           [burp
             IBurpExtender
             IBurpExtenderCallbacks
             IProxyListener
@@ -20,6 +21,11 @@
             IContextMenuInvocation
             IContextMenuFactory]))
 
+(defn find-burp-tab
+  [ui-comp]
+  (if (instance? JTabbedPane ui-comp)
+    ui-comp
+    (find-burp-tab (.getParent ui-comp))))
 
 (defn set-burp-tab!
   [burp-tab]
@@ -27,7 +33,8 @@
 
 (defn get-burp-tab
   []
-  (get @state/state :burp-tab))
+  (some-> (get @state/state :burp-tab)
+          deref))
 
 (defn get-curr-burp-tab-title
   []
@@ -38,12 +45,18 @@
 (defn switch-burp-tab
   [tab-title]
   (when-let [burp-tab (get-burp-tab)]
-    (let [tab-count (.getTabCount burp-tab)]
+    (let [max-idx (-> (.getTabCount burp-tab)
+                      dec)]
       (loop [i 0]
         (if (= tab-title (.getTitleAt burp-tab i))
           (.setSelectedIndex burp-tab i)
-          (recur (inc i))
-          )))))
+          (when (< i max-idx)
+            (recur (inc i))))))))
+
+(defn set-burp-clj-view!
+  [view]
+  (swap! state/state assoc :burp-clj-view view)
+  (set-burp-tab! (delay (find-burp-tab view))))
 
 (defn get-helper []
   (-> (extender/get)
