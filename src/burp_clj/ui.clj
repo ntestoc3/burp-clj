@@ -21,7 +21,7 @@
              :font (seesaw.font/font :name :monospaced
                                      :style :bold
                                      :size 16)
-             :foreground :darkorange))
+             :foreground "#C84625"))
 
 (def burp-img (delay (-> (io/resource "resources/Media/icon32.png" (.getClassLoader burp.ICookie))
                          icon/icon
@@ -47,7 +47,7 @@
                                (script/add-script-source! source)
                                (catch AssertionError _
                                  (gui/invoke-later
-                                  (gui/alert (format "%s not valid source!" source))))))
+                                  (gui/alert (format "%s not a valid source!" source))))))
                            :success))]
     (-> (.getOwner dlg)
         (.setIconImage @burp-img))

@@ -131,8 +131,10 @@
         (extender/register-scope-change-listener! k v)))
 
     (when tab
-      (doseq [[k v] tab]
-        (extender/register-add-tab! k v)))
+      (let [curr-tab (helper/get-curr-burp-tab-title)]
+        (doseq [[k v] tab]
+          (extender/register-add-tab! k v))
+        (helper/switch-burp-tab curr-tab)))
 
     (when enable-callback
       (log/info :enable-script! script-k "run enable-callback" )
@@ -208,8 +210,10 @@
           (extender/remove-scope-change-listener! k)))
 
       (when tab
-        (doseq [k (keys tab)]
-          (extender/register-remove-tab! k)))
+        (let [curr-tab (helper/get-curr-burp-tab-title)]
+          (doseq [k (keys tab)]
+            (extender/register-remove-tab! k))
+          (helper/switch-burp-tab curr-tab)))
 
       (set-script-running! script-k false)
       true

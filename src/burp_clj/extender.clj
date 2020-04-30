@@ -21,8 +21,6 @@
 (defn get []
   (:extender @state/state))
 
-
-
 (defn- add-callback!
   "添加回调注册
   `class-k` 类别的key

@@ -7,6 +7,7 @@
             [burp-clj.utils :as utils]
             [taoensso.timbre :as log]
             )
+  (:import javax.swing.JTabbedPane)
   (:gen-class)
   )
 
@@ -18,6 +19,11 @@
       (helper/alert formatted-output-str)
       (helper/log formatted-output-str))))
 
+(defn find-burp-tab
+  [ui-comp]
+  (if (instance? JTabbedPane ui-comp)
+    ui-comp
+    (find-burp-tab (.getParent ui-comp))))
 
 ;;; 必须存在，extension加载时执行
 (defn register
@@ -34,7 +40,10 @@
 
   (script/init!)
 
-  (extender/add-tab! "Clojure Plugin" (ui/make-view))
+  (let [view (ui/make-view)]
+    (extender/add-tab! "Clojure Plugin" view)
+    (-> (find-burp-tab view)
+        (helper/set-burp-tab!)))
 
   (log/info :register "ok!"))
 

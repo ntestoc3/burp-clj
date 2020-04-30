@@ -3,6 +3,7 @@
             [clojure.java.io :refer [as-url]]
             [burp-clj.extender :as extender]
             [taoensso.timbre :as log]
+            [burp-clj.state :as state]
             [burp-clj.utils :refer [def-enum-fileds-map]])
   (:refer-clojure :exclude [alert])
   (:import [burp
@@ -18,6 +19,31 @@
             ICookie
             IContextMenuInvocation
             IContextMenuFactory]))
+
+
+(defn set-burp-tab!
+  [burp-tab]
+  (swap! state/state assoc :burp-tab burp-tab))
+
+(defn get-burp-tab
+  []
+  (get @state/state :burp-tab))
+
+(defn get-curr-burp-tab-title
+  []
+  (when-let [burp-tab (get-burp-tab)]
+    (->> (.getSelectedIndex burp-tab)
+        (.getTitleAt burp-tab))))
+
+(defn switch-burp-tab
+  [tab-title]
+  (when-let [burp-tab (get-burp-tab)]
+    (let [tab-count (.getTabCount burp-tab)]
+      (loop [i 0]
+        (if (= tab-title (.getTitleAt burp-tab i))
+          (.setSelectedIndex burp-tab i)
+          (recur (inc i))
+          )))))
 
 (defn get-helper []
   (-> (extender/get)
