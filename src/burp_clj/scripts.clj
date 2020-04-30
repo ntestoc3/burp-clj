@@ -250,20 +250,24 @@
       (disable-script! s)))
   (swap! db assoc :scripts {}))
 
-(defn reload-sources!
-  []
+(defn load-sources-with-running!
+  [running]
   ;; 调用add-dep修正classloader
   (utils/add-dep [])
-  (let [running (or (extender/get-setting :script/running)
-                    [])]
-    (unreg-all-script!)
-    (doseq [[type target] (->> (:source @db)
-                               (map #(s/conform ::specs/script-source %)))]
-      (helper/with-exception-default
-        nil
-        (load-scripts! type target)))
-    (doseq [s running]
-      (enable-script! s))))
+  (doseq [[type target] (->> (:source @db)
+                             (map #(s/conform ::specs/script-source %)))]
+    (helper/with-exception-default
+      nil
+      (load-scripts! type target)))
+  (doseq [s running]
+    (enable-script! s)))
+
+(defn reload-sources!
+  []
+  (unreg-all-script!)
+  (-> (or (extender/get-setting :script/running)
+          [])
+      load-sources-with-running!))
 
 (defn unload!
   []
@@ -273,10 +277,12 @@
 (defn init!
   []
   (let [sources (or (extender/get-setting :script/sources)
+                    [])
+        running (or (extender/get-setting :script/running)
                     [])]
     (log/info :scripts-init! "sources:" sources)
     (set-script-sources sources)
-    (reload-sources!)
+    (load-sources-with-running! running)
     (extender/register-extension-state-listener! :script/source-manager
                                                  (make-unload-callback unload!)
                                                  )))

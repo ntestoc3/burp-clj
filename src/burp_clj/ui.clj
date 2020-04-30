@@ -40,10 +40,14 @@
                                 "grow, wmin 300"]])
              :option-type :ok-cancel
              :success-fn (fn [p]
-                           (-> (gui/to-root p)
-                               (gui/select [:#source])
-                               (gui/text)
-                               (script/add-script-source!))
+                           (let [source (-> (gui/to-root p)
+                                            (gui/select [:#source])
+                                            (gui/text))]
+                             (try
+                               (script/add-script-source! source)
+                               (catch AssertionError _
+                                 (gui/invoke-later
+                                  (gui/alert (format "%s not valid source!" source))))))
                            :success))]
     (-> (.getOwner dlg)
         (.setIconImage @burp-img))
@@ -130,7 +134,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
             "grow"]
 
            [(gui/scrollable (source-list))
-            "spany 5, grow, wrap"]
+            "spany 5, grow, wrap, wmin 500"]
 
            [(gui/button :text "Remove"
                         :listen [:action
