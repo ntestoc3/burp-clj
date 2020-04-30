@@ -1,9 +1,9 @@
 (ns burp-clj.core
   (:require [burp-clj.extender :as extender]
-            [burp-clj.nrepl :as nrepl]
             [burp-clj.ui :as ui]
             [burp-clj.version :as version]
             [burp-clj.helper :as helper]
+            [burp-clj.scripts :as script]
             [burp-clj.utils :as utils]
             [taoensso.timbre :as log]
             )
@@ -25,13 +25,15 @@
   [cbs]
   (.setExtensionName cbs "Clojure Plugin")
   (extender/set! cbs)
+  (utils/add-dep []) ;; 设置class loader,重复加载插件，classpath会变
   (utils/log-time-format!)
 
   (utils/log-to-fn! :plugin-log logger)
 
   (log/info :register "clojure plugin version:" (version/get-version))
-  (when (extender/get-setting :nrepl/start-on-load)
-    (nrepl/start-nrepl))
+
+  (script/init!)
+
   (extender/add-tab! "Clojure Plugin" (ui/make-view))
 
   (log/info :register "ok!"))

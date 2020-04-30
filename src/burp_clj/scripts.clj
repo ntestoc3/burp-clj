@@ -42,7 +42,9 @@
                          (fs/glob "*.clj"))
                      (map str))]
       (log/info :load-script clj)
-      (load-file clj))))
+      (helper/with-exception-default
+        (log/error :load-script-file clj)
+        (load-file clj)))))
 
 (defn load-scripts!
   "加载source下的脚本文件"
@@ -75,7 +77,6 @@
                      version
                      enable-callback
                      context-menu
-                     extension-state-listener
                      http-listener
                      intruder-payload-generator
                      intruder-payload-processor
@@ -92,10 +93,6 @@
     (when context-menu
       (doseq [[k v] context-menu]
         (extender/register-context-menu-factory! k v)))
-
-    (when extension-state-listener
-      (doseq [[k v] extension-state-listener]
-        (extender/register-extension-state-listener! k v)))
 
     (when http-listener
       (doseq [[k v] http-listener]
@@ -150,7 +147,6 @@
                      version
                      disable-callback
                      context-menu
-                     extension-state-listener
                      http-listener
                      intruder-payload-generator
                      intruder-payload-processor
@@ -174,10 +170,6 @@
       (when context-menu
         (doseq [k (keys context-menu)]
           (extender/remove-context-menu-factory! k)))
-
-      (when extension-state-listener
-        (doseq [k (keys extension-state-listener)]
-          (extender/remove-extension-state-listener! k)))
 
       (when http-listener
         (doseq [k (keys http-listener)]
@@ -252,8 +244,7 @@
 
 (defn unreg-all-script!
   []
-  (when-let [running (-> (get-running-scripts)
-                         keys)]
+  (when-let [running (get-running-scripts)]
     (extender/set-setting! :script/running running)
     (doseq [s running]
       (disable-script! s)))

@@ -58,7 +58,6 @@
                                       :script/enable-callback
                                       :script/disable-callback
                                       :script/context-menu
-                                      :script/extension-state-listener
                                       :script/http-listener
                                       :script/intruder-payload-generator
                                       :script/intruder-payload-processor
