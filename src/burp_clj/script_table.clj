@@ -12,9 +12,9 @@
             [taoensso.timbre :as log])
   (:import javax.swing.table.TableModel))
 
-(def script-cols-info [{:key :running :text "启动" :class java.lang.Boolean}
-                       {:key :name :text "名称" :class java.lang.String}
-                       {:key :version :text "版本" :class java.lang.String}
+(def script-cols-info [{:key :running :text "enable" :class java.lang.Boolean}
+                       {:key :name :text "name" :class java.lang.String}
+                       {:key :version :text "version" :class java.lang.String}
                        ])
 
 (defn make-scripts-model

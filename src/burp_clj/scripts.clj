@@ -3,6 +3,7 @@
             [me.raynes.fs :as fs]
             [clojure.spec.alpha :as s]
             [taoensso.timbre :as log]
+            [burp-clj.extension-state :refer [make-unload-callback]]
             [burp-clj.extender :as extender]
             [burp-clj.helper :as helper]
             [burp-clj.specs :as specs]
@@ -11,9 +12,15 @@
 
 (def db (atom {}))
 
-(defn get-script-source
+(defn get-script-sources
+  "获取所有script sources"
   []
   (get @db :source))
+
+(defn set-script-sources
+  "设置sctipt sources"
+  [sources]
+  (swap! db assoc :source sources))
 
 (defn add-script-source!
   "添加脚本源，可以是git地址，或者目录"
@@ -23,7 +30,8 @@
 
 (defn remove-script-source!
   [source]
-  (swap! db update :source dissoc source))
+  (swap! db update :source (fn [v]
+                             (remove #(= source %) v))))
 
 (defn- load-dir-scripts
   "加载一个文件下的所有clj文件"
@@ -235,21 +243,52 @@
                  (swap! db update :scripts assoc k))
             true)))))
 
+(defn get-running-scripts
+  []
+  (->> (:scripts @db)
+       (filter (comp :running val))
+       keys
+       vec))
+
 (defn unreg-all-script!
   []
-  (doseq [s (->> (:scripts @db)
-                 (filter :running))]
-    (disable-script! s))
+  (when-let [running (-> (get-running-scripts)
+                         keys)]
+    (extender/set-setting! :script/running running)
+    (doseq [s running]
+      (disable-script! s)))
   (swap! db assoc :scripts {}))
 
 (defn reload-sources!
   []
+  ;; 调用add-dep修正classloader
+  (utils/add-dep [])
+  (let [running (or (extender/get-setting :script/running)
+                    [])]
+    (unreg-all-script!)
+    (doseq [[type target] (->> (:source @db)
+                               (map #(s/conform ::specs/script-source %)))]
+      (helper/with-exception-default
+        nil
+        (load-scripts! type target)))
+    (doseq [s running]
+      (enable-script! s))))
+
+(defn unload!
+  []
   (unreg-all-script!)
-  (doseq [[type target] (->> (:source @db)
-                             (map #(s/conform ::specs/script-source %)))]
-    (helper/with-exception-default
-      nil
-      (load-scripts! type target))))
+  (extender/set-setting! :script/sources (get-script-sources)))
+
+(defn init!
+  []
+  (let [sources (or (extender/get-setting :script/sources)
+                    [])]
+    (log/info :scripts-init! "sources:" sources)
+    (set-script-sources sources)
+    (reload-sources!)
+    (extender/register-extension-state-listener! :script/source-manager
+                                                 (make-unload-callback unload!)
+                                                 )))
 
 (comment
 

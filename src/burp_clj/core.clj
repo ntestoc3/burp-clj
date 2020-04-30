@@ -4,8 +4,6 @@
             [burp-clj.ui :as ui]
             [burp-clj.version :as version]
             [burp-clj.helper :as helper]
-            [burp-clj.cyber-chef :as cyber-chef]
-            [burp-clj.shiro-check :as shiro-check]
             [burp-clj.utils :as utils]
             [taoensso.timbre :as log]
             )
@@ -40,14 +38,6 @@
 
 
 (comment
-  (extender/register-context-menu-factory! :cyber-chef (cyber-chef/cyber-chef-menu))
-
-  (extender/remove-context-menu-factory! :cyber-chef )
-
-  (extender/register-proxy-listener! :shiro-check (shiro-check/shiro-check-proxy))
-
-  (extender/remove-proxy-listener! :shiro-check)
-
   (def tab (ui/make-view))
 
   )

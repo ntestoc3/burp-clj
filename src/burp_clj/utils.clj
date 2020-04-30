@@ -38,16 +38,14 @@
 (defn add-dep
   [libs & {:keys [repos classloader]
            :or {repos default-repo}}]
-  (prn (-> (Thread/currentThread)
-           (.getName))
-       "class paths:")
-  (doseq  [cp (-> (pg/classloader-hierarchy)
-                  pg/get-classpath)]
-    (prn cp))
-  (prn "base class loader paths:")
-  (doseq  [cp (-> (pg/classloader-hierarchy base-class-loader)
-                  pg/get-classpath)]
-    (prn cp))
+  (log/info :add-dep "class paths:"
+            (-> (pg/classloader-hierarchy)
+                pg/get-classpath
+                vec)
+            "base class loader paths:"
+            (-> (pg/classloader-hierarchy base-class-loader)
+                pg/get-classpath
+                vec))
   (let [classloader (ensure-dynamic-classloader)]
     (add-dependencies :coordinates libs
                       :repositories repos
