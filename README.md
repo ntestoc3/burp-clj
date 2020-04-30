@@ -1,14 +1,19 @@
 # burp-clj
 
-A Clojure library designed to ... well, that part is up to you.
+为burp提供clojure插件支持，提供加载clojure脚本文件的功能
+
 
 ## Usage
 
-FIXME
+burp加载插件后，在Clojure Plugin页面下添加Script Source,比如:
+
+https://github.com/ntestoc3/burp-scripts
+
+然后点Reload Scripts!加载这个目录下的所有clj文件，支持git url和本地文件夹。
 
 ## License
 
-Copyright © 2019 FIXME
+Copyright © 2020 ntestoc3
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
