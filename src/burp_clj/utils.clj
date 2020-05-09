@@ -214,21 +214,25 @@
      :body body}))
 
 (defn parse-request
-  "解析http请求"
-  [req]
-  (when req
-    (let [[headers body] (-> (->http-message req)
-                             (str/split #"\r?\n\r?\n" 2))
-          [start-line & headers] (str/split headers #"\r?\n")
-          [method uri http-ver] (str/split start-line #"\s")
-          headers (parse-headers headers)]
-      {:method (csk/->kebab-case-keyword method)
-       :host (:host headers)
-       :version (-> (str/split http-ver #"/")
-                    last)
-       :url (str "http://" (:host headers) uri)
-       :headers (dissoc headers :host)
-       :body body})))
+  "解析http请求 `https`是否使用https,默认为true"
+  ([req] (parse-request req true))
+  ([req https]
+   (when req
+     (let [[headers body] (-> (->http-message req)
+                              (str/split #"\r?\n\r?\n" 2))
+           [start-line & headers] (str/split headers #"\r?\n")
+           [method uri http-ver] (str/split start-line #"\s")
+           headers (parse-headers headers)]
+       {:method (csk/->kebab-case-keyword method)
+        :host (:host headers)
+        :version (-> (str/split http-ver #"/")
+                     last)
+        :url (str (if https
+                    "https://"
+                    "http://")
+                  (:host headers) uri)
+        :headers (dissoc headers :host)
+        :body body}))))
 
 (defn parse-response
   "解析http响应"

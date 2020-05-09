@@ -16,6 +16,7 @@
             IExtensionStateListener
             IRequestInfo
             IResponseInfo
+            IHttpService
             IParameter
             ICookie
             IContextMenuInvocation
@@ -163,6 +164,12 @@
    :headers (parse-headers req)
    :params  (parse-req-params req)
    :url (parse-req-url req)})
+
+(defn parse-http-service
+  [^IHttpService service]
+  {:host (.getHost service)
+   :port (.getPort service)
+   :protocol (.getProtocol service)})
 
 (defn parse-status-code
   "解析返回的状态码"
