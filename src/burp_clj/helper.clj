@@ -120,39 +120,86 @@
    :path (.getPath cookie)
    :value (.getValue cookie)})
 
+(defn parse-headers
+  [req-or-resp]
+  (.getHeaders req-or-resp))
+
+(defn parse-resp-cookies
+  [^IResponseInfo resp]
+  (->> (.getCookies resp)
+       (mapv parse-cookie)))
+
+(defn parse-req-url
+  "解析请求url"
+  [^IRequestInfo req]
+  (try (.getUrl req)
+       (catch Exception _ nil)))
+
+(defn parse-req-params
+  "解析所有请求参数"
+  [^IRequestInfo req]
+  (->> (.getParameters req)
+       (mapv parse-param)))
+
+(defn parse-body-offset
+  "解析请求或响应的body开始位置"
+  [req-or-resp]
+  (.getBodyOffset req-or-resp))
+
+(defn parse-req-content-type
+  [^IRequestInfo req]
+  (-> (.getContentType req)
+      request-content-type-inv))
+
+(defn parse-req-method
+  "解析请求方法"
+  [^IRequestInfo req]
+  (.getMethod req))
+
 (defn parse-request [^IRequestInfo req]
-  {:method (.getMethod req)
-   :content-type (-> (.getContentType req)
-                     request-content-type-inv)
-   :body-offset (.getBodyOffset req)
-   :headers (.getHeaders req)
-   :params  (->> (.getParameters req)
-                 (mapv parse-param))
-   :url (try (.getUrl req)
-             (catch Exception _ nil))})
+  {:method (parse-req-method req)
+   :content-type (parse-req-content-type req)
+   :body-offset (parse-body-offset req)
+   :headers (parse-headers req)
+   :params  (parse-req-params req)
+   :url (parse-req-url req)})
+
+(defn parse-status-code
+  "解析返回的状态码"
+  [^IResponseInfo resp]
+  (.getStatusCode resp))
+
+(defn parse-mime-type
+  "`from-header` 是否从响应头中解析mime类型，
+  如果为false，则从http body中推断mime类型, 默认为true"
+  ([^IResponseInfo resp] (parse-mime-type resp true))
+  ([^IResponseInfo resp from-header]
+   (if from-header
+     (.getStatedMimeType resp)
+     (.getInferredMimeType resp))))
+
+(defn parse-response [^IResponseInfo resp]
+  {:headers (parse-headers resp)
+   :state-mime-type (parse-mime-type resp)
+   :status (parse-status-code resp)
+   :body-offset (parse-body-offset resp)
+   :cookies (parse-resp-cookies resp)})
 
 (defn analyze-request
   "分析请求"
   ([req]
    (-> (get-helper)
-       (.analyzeRequest req)
-       parse-request))
+       (.analyzeRequest req)))
   ([http-service req]
    (-> (get-helper)
-       (.analyzeRequest http-service req)
-       parse-request)))
+       (.analyzeRequest http-service req))))
 
 (defn analyze-response
   "分析响应"
   [resp]
-  (let [resp-info (-> (get-helper)
-                      (.analyzeResponse resp))]
-    {:headers (.getHeaders resp-info)
-     :state-mime-type (.getStatedMimeType resp-info)
-     :status (.getStatusCode resp-info)
-     :body-offset (.getBodyOffset resp-info)
-     :cookies (->> (.getCookies resp-info)
-                   (mapv parse-cookie))}))
+  (->> (cond-> resp
+         (instance? IHttpRequestResponse resp) (.getResponse resp))
+       (.analyzeResponse (get-helper))))
 
 (defn base64-encode
   [s]
@@ -170,22 +217,23 @@
       (.buildParameter name value (param-type type))))
 
 (defn add-parameter
-  [req-bs param]
+  [^bytes req-bs param]
   (-> (get-helper)
       (.addParameter req-bs param)))
 
 (defn remove-parameter
-  [req-bs param]
+  "删除请求的参数"
+  [^bytes req-bs param]
   (-> (get-helper)
       (.removeParameter req-bs param)))
 
 (defn update-parameter
-  [req-bs param]
+  [^bytes req-bs param]
   (-> (get-helper)
       (.updateParameter req-bs param)))
 
 (defn get-request-parameter
-  [req-bs param-name]
+  [^bytes req-bs param-name]
   (-> (get-helper)
       (.getRequestParameter req-bs param-name)))
 
@@ -197,6 +245,11 @@
     (-> (get-helper)
         (.buildHttpRequest url))))
 
+(defn build-http-message
+  [headers ^bytes body]
+  (-> (get-helper)
+      (.buildHttpMessage headers body)))
+
 (defn build-http-service
   ([host port use-https-or-protocol]
    (-> (get-helper)
@@ -207,36 +260,3 @@
   (-> (get-helper)
       (.bytesToString bs)))
 
-(defn- find-headers-key
-  "find headers key name"
-  [headers k]
-  (let [target-k (-> k name str/lower-case)]
-    (->> headers
-         (filter (fn [[k v]]
-                   (= (-> k str/lower-case str/trim)
-                      target-k)))
-         ffirst)))
-
-(defn get-headers-v
-  "get headers value by header-k"
-  [headers header-k]
-  (->> (find-headers-key headers header-k)
-       (get headers)))
-
-(defn parse-raw-http
-  [raw]
-  (let [[headers body] (str/split raw #"\r?\n\r?\n" 2)
-        [start-line & headers] (str/split headers #"\r?\n")
-        [method uri http-ver] (str/split start-line #"\s")
-        headers (->> headers
-                     (map #(str/split %1 #":\s+" 2))
-                     (filter #(= 2 (count %)))
-                     (into {}))]
-    {:request-method (-> method
-                         str/lower-case
-                         keyword)
-     :server-name (get-headers-v headers :host)
-     :http-ver http-ver
-     :uri uri
-     :headers headers
-     :body body}))

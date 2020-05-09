@@ -268,3 +268,8 @@
   [prompt]
   (-> (get)
       (.exitSuite prompt)))
+
+(defn get-proxy-history
+  []
+  (-> (get)
+      (.getProxyHistory)))

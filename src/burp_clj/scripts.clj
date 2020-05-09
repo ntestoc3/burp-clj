@@ -130,6 +130,10 @@
       (doseq [[k v] scope-change-listener]
         (extender/register-scope-change-listener! k v)))
 
+    (when session-handling-action
+      (doseq [[k v] session-handling-action]
+        (extender/register-session-handling-action! k v)))
+
     (when tab
       (let [curr-tab (helper/get-curr-burp-tab-title)]
         (doseq [[k v] tab]
@@ -208,6 +212,10 @@
       (when scope-change-listener
         (doseq [k (keys scope-change-listener)]
           (extender/remove-scope-change-listener! k)))
+
+      (when session-handling-action
+        (doseq [k (keys session-handling-action)]
+          (extender/remove-session-handling-action! k)))
 
       (when tab
         (let [curr-tab (helper/get-curr-burp-tab-title)]

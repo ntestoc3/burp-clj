@@ -180,3 +180,115 @@
                         `(. ~d ~f ~@(map #(with-meta % nil) args))))]
     `(let [~d ~delegate]
        (reify ~type ~@body ~@methods))))
+
+;;;;;;;;;;; http helper
+
+(defn parse-headers
+  [headers]
+  (->> headers
+       (map #(str/split %1 #":\s+" 2))
+       (filter #(= 2 (count %)))
+       (map (fn [[k v]] [(csk/->kebab-case-keyword k) v]))
+       (into {})))
+
+(defn ->http-message
+  [msg]
+  (cond
+    (string? msg) msg
+    (bytes? msg) (String. msg)
+    :else (throw (ex-info "unsupport http message type." {:msg msg}))))
+
+(defn parse-request
+  "解析http请求"
+  [req]
+  (let [[headers body] (-> (->http-message req)
+                           (str/split #"\r?\n\r?\n" 2))
+        [start-line & headers] (str/split headers #"\r?\n")
+        [method uri http-ver] (str/split start-line #"\s")
+        headers (parse-headers headers)]
+    {:method (csk/->kebab-case-keyword method)
+     :host (:host headers)
+     :version http-ver
+     :uri uri
+     :headers (dissoc headers :host)
+     :body body}))
+
+(defn parse-request
+  "解析http请求"
+  [req]
+  (when req
+    (let [[headers body] (-> (->http-message req)
+                             (str/split #"\r?\n\r?\n" 2))
+          [start-line & headers] (str/split headers #"\r?\n")
+          [method uri http-ver] (str/split start-line #"\s")
+          headers (parse-headers headers)]
+      {:method (csk/->kebab-case-keyword method)
+       :host (:host headers)
+       :version (-> (str/split http-ver #"/")
+                    last)
+       :url (str "http://" (:host headers) uri)
+       :headers (dissoc headers :host)
+       :body body})))
+
+(defn parse-response
+  "解析http响应"
+  [resp]
+  (when resp
+    (let [[headers body] (-> (->http-message resp)
+                             (str/split #"\r?\n\r?\n" 2))
+          [start-line & headers] (str/split headers #"\r?\n")
+          [http-ver status-code] (str/split start-line #"\s")
+          headers (parse-headers headers)]
+      {:status (Integer/parseInt status-code)
+       :version (-> (str/split http-ver #"/")
+                    last)
+       :headers headers
+       :body body})))
+
+(defn build-headers
+  [headers]
+  (some->> headers
+           (map (fn [[k v]]
+                  (str (csk/->HTTP-Header-Case-String k) ": " v)))
+           (str/join "\r\n")))
+
+(defn build-req-uri
+  [uri]
+  (let [path (.getPath uri)
+        query (.getQuery uri)]
+    (str (if (empty? path)
+           "/"
+           path)
+         (when query
+           (str "?" query)))))
+
+(defn build-request
+  [{:keys [method url body headers version]
+    :or {method :get
+         version "1.1"}}]
+  (let [u (java.net.URL. url)
+        req-uri (build-req-uri u)
+        body-count (count body)
+        headers (cond-> headers
+                  (pos? body-count) (assoc :content-length body-count)
+                  :always (assoc :host (.getHost u)))]
+
+    (str (str/upper-case (name method)) " " req-uri " HTTP/" version "\r\n"
+         (build-headers headers)
+         "\r\n\r\n"
+         body)))
+
+(comment
+  (assert
+   (= "a\r\nb\r\ntet: cc"
+      (build-headers ["a" "b" ["tet" "cc"]])))
+
+  (build-request {:url "http://www.baidu.com/test?aa=5"
+                  :headers {"Cookie" "test=3"
+                            "User-Agent" "googlebot"
+                            :go-go "hsh"}
+                  :method :post
+                  :body "hahah"
+                  })
+
+  )
