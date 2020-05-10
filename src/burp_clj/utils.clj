@@ -152,7 +152,7 @@
 
 (defn show-ui
   ([widget]
-   (gui/native!)
+   ;; (gui/native!)
    (let [f (gui/frame :title "test ui"
                       :on-close :dispose
                       :content widget)]

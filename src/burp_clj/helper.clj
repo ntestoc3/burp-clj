@@ -19,6 +19,7 @@
             IHttpService
             IParameter
             ICookie
+            IMessageEditorController
             IContextMenuInvocation
             IContextMenuFactory]))
 
@@ -106,6 +107,7 @@
 (def-enum-fileds-map request-content-type IRequestInfo CONTENT_TYPE_)
 (def-enum-fileds-map intercept-action IInterceptedProxyMessage ACTION_)
 (def-enum-fileds-map menu-invocation-context IContextMenuInvocation CONTEXT_)
+(def-enum-fileds-map tool-type IBurpExtenderCallbacks TOOL_)
 
 (defn parse-param [^IParameter param]
   (let [r {:name (.getName param)
@@ -267,3 +269,64 @@
   (-> (get-helper)
       (.bytesToString bs)))
 
+(defn make-message-editor-controller
+  [service req resp]
+  (reify IMessageEditorController
+    (getHttpService [this] service)
+    (getRequest [this] req)
+    (getResponse [this] resp)))
+
+(defprotocol IRequestResponseEditorController
+  (init [this editable])
+  (get-request-editor [this])
+  (get-response-editor [this])
+  (set-message [this message])
+  (get-message [this]))
+
+(defn make-request-response-controller
+  []
+  (let [data (atom nil)]
+    (reify
+      IRequestResponseEditorController
+      (init [this editable]
+        (let [req-editor (extender/create-message-editor this editable)
+              resp-editor (extender/create-message-editor this editable)]
+          (swap! data assoc
+                 :request-editor req-editor
+                 :response-editor resp-editor)))
+      (get-message [this]
+        (get @data :message))
+      (set-message [this message]
+        (if (= (get-message this) message)
+          (log/info :request-response-controller :set-message "same message.")
+          (do
+            (when-let [req (.getRequest message)]
+              (-> (get-request-editor this)
+                  (.setMessage req true)))
+            (when-let [resp (.getResponse message)]
+              (-> (get-response-editor this)
+                  (.setMessage resp false)))
+            (swap! data assoc :message message))))
+      (get-request-editor [this]
+        (get @data :request-editor))
+      (get-response-editor [this]
+        (get @data :response-editor))
+
+      IMessageEditorController
+      (getHttpService [this]
+        (when-let [msg (get-message this)]
+          (.getHttpService msg)))
+      (getRequest [this]
+        (when-let [msg (get-message this)]
+          (.getRequest msg)))
+      (getResponse [this]
+        (when-let [msg (get-message this)]
+          (.getResponse msg))))
+
+    ))
+
+(defn ->msg-controller
+  [^IHttpRequestResponse http-req-resp]
+  (make-message-editor-controller (.getHttpService http-req-resp)
+                                  (.getRequest http-req-resp)
+                                  (.getResponse http-req-resp)))
