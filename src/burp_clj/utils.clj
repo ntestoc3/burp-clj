@@ -233,7 +233,8 @@
      :version http-ver
      :uri uri
      :headers (dissoc headers :host)
-     :body body}))
+     :body (when (seq body)
+             body)}))
 
 (defn parse-request
   "解析http请求 `https`是否使用https,默认为true"
@@ -254,7 +255,8 @@
                     "http://")
                   (:host headers) uri)
         :headers (dissoc headers :host)
-        :body body}))))
+        :body (when (seq body)
+                body)}))))
 
 (defn parse-response
   "解析http响应"
