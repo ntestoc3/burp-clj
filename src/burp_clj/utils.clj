@@ -148,7 +148,8 @@
     (load-file path)
     (load-file (str (fs/file fs/*cwd* path)))))
 
-;;; ui
+;;;;;;;;;;; gui helper
+
 (defn show-ui
   ([widget]
    (gui/native!)
@@ -162,6 +163,16 @@
   [handler]
   (reify javax.swing.event.TableModelListener
     (tableChanged [this e] (handler e))))
+
+(defn fix-font!
+  "修正font, burp的UI Font类型为awt.Font, 修正为FontUIResource
+  解决swingx table初始化失败的问题"
+  []
+  (let [old-font (-> (javax.swing.UIManager/getFont "Label.font"))]
+    (when-not (instance? javax.swing.plaf.FontUIResource old-font)
+      (->> (javax.swing.plaf.FontUIResource. old-font)
+           (javax.swing.UIManager/put "Label.font")))))
+
 
 ;;;; object helper
 (defmacro override-delegate
@@ -181,7 +192,18 @@
     `(let [~d ~delegate]
        (reify ~type ~@body ~@methods))))
 
+(defmacro dyn-call
+  [ns-sym]
+  (let [ns (-> (namespace ns-sym)
+               symbol)
+        sym (-> (name ns-sym)
+                symbol)]
+    `(do
+       (require '~ns)
+       (ns-resolve '~ns '~sym))))
+
 ;;;;;;;;;;; http helper
+
 
 (defn parse-headers
   [headers]

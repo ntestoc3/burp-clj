@@ -1,5 +1,5 @@
 (def feature-version "0.3")
-(def build-version "1")
+(def build-version "2")
 (def release-version (str feature-version "." build-version))
 (def project-name "burp-clj")
 
@@ -13,14 +13,12 @@
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.tcrawley/dynapath "1.1.0"] ;; dynamic class loader
                  [camel-snake-kebab "0.4.1"]
-                 [org.swinglabs.swingx/swingx-core "1.6.5-1"]
-                 [seesaw "1.5.0"
-                  :exclusions [org.swinglabs.swingx/swingx-core]] ; swing GUI
+                 [new-seesaw "0.1.0"]                 ;; 0.1.1添加了javafx依赖
                  [org.clojure/tools.gitlibs "1.0.83"] ;; git download
                  [cheshire "5.10.0"]
                  [version-clj "0.1.2"]
-                 [me.raynes/fs "1.4.6"] ;; fs utils
-                 [com.taoensso/timbre "4.10.0"]  ;; logger
+                 [me.raynes/fs "1.4.6"]         ;; fs utils
+                 [com.taoensso/timbre "4.10.0"] ;; logger
                  ;; [buddy/buddy-core "1.6.0"] ;; encrypt
                  ]
   :java-source-paths ["java-src"]

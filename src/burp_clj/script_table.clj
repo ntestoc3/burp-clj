@@ -50,9 +50,12 @@
        info))
 
 (defn make-table []
-  (let [tbl (gui/table :id :script-table
-                       :model (make-scripts-model (-> (script/get-scripts)
-                                                      fix-script-info)))]
+  (utils/fix-font!)
+  (require '[seesaw.swingx])
+  (let [table-x (utils/dyn-call seesaw.swingx/table-x)
+        tbl (table-x :id :script-table
+                     :model (make-scripts-model (-> (script/get-scripts)
+                                                    fix-script-info)))]
     (-> (.getTableHeader tbl)
         (.setReorderingAllowed false))
     (bind/bind
