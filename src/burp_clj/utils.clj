@@ -202,6 +202,34 @@
        (require '~ns)
        (ns-resolve '~ns '~sym))))
 
+;;;;;;;;;;; map helper
+
+(defn ns-keyword
+  "为keyword k添加命名空间n限定,
+  如果overwrite为true，则覆盖已有的命名空间,默认为false"
+  ([k n] (ns-keyword k n false))
+  ([k n overwrite]
+   (if (or overwrite
+           (not (qualified-keyword? k)))
+     (keyword (name n) (name k))
+     k)))
+
+(defn map->nsmap
+  "转换map的所有key到命名空间n限定的key
+  如果overwrite为true，则覆盖已有的命名空间,默认为false
+  `deep` 为true则转换嵌套map为命名空间，嵌套的key为ns路径,默认为false"
+  ([m n] (map->nsmap m n false))
+  ([m n deep] (map->nsmap m n deep false))
+  ([m n deep overwrite]
+   (reduce-kv (fn [acc k v]
+                (if (and deep (map? v))
+                  (let [new-ns (str (name n) "." (name k))
+                        sub-map (map->nsmap v new-ns deep overwrite)]
+                    (merge acc sub-map))
+                  (let [new-kw (ns-keyword k n overwrite)]
+                    (assoc acc new-kw v))))
+              {} m)))
+
 ;;;;;;;;;;; http helper
 
 
@@ -305,6 +333,7 @@
          (build-headers headers)
          "\r\n\r\n"
          body)))
+
 
 (comment
   (assert

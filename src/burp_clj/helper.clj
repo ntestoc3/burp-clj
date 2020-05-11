@@ -299,13 +299,14 @@
       (set-message [this message]
         (if (= (get-message this) message)
           (log/info :request-response-controller :set-message "same message.")
-          (do
-            (when-let [req (.getRequest message)]
-              (-> (get-request-editor this)
-                  (.setMessage req true)))
-            (when-let [resp (.getResponse message)]
-              (-> (get-response-editor this)
-                  (.setMessage resp false)))
+          (let [req (or (.getRequest message)
+                        (byte-array 0))
+                resp (or (.getResponse message)
+                         (byte-array 0))]
+            (-> (get-request-editor this)
+                (.setMessage req true))
+            (-> (get-response-editor this)
+                (.setMessage resp false))
             (swap! data assoc :message message))))
       (get-request-editor [this]
         (get @data :request-editor))
