@@ -4,7 +4,8 @@
             [burp-clj.extender :as extender]
             [taoensso.timbre :as log]
             [burp-clj.state :as state]
-            [burp-clj.utils :refer [def-enum-fileds-map]])
+            [burp-clj.utils :refer [def-enum-fileds-map]]
+            [burp-clj.utils :as utils])
   (:refer-clojure :exclude [alert])
   (:import javax.swing.JTabbedPane
            [burp
@@ -193,6 +194,21 @@
    :status (parse-status-code resp)
    :body-offset (parse-body-offset resp)
    :cookies (parse-resp-cookies resp)})
+
+(defn parse-http-req-resp
+  "解析http req resp消息，
+  `req-resp` IHttpRequestResponse"
+  [req-resp]
+  (let [req (.getRequest req-resp)
+        resp (.getResponse req-resp)
+        service (.getHttpService req-resp)]
+    (merge
+     {:comment (.getComment req-resp)}
+     (parse-http-service service)
+     (-> (utils/parse-request req)
+         (utils/map->nsmap :request true))
+     (-> (utils/parse-response resp)
+         (utils/map->nsmap :response true)))))
 
 (defn analyze-request
   "分析请求"

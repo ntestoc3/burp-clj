@@ -202,6 +202,27 @@
        (require '~ns)
        (ns-resolve '~ns '~sym))))
 
+(defn invoke-private-method [obj fn-name-string & args]
+  (let [m (first (filter (fn [x] (.. x getName (equals fn-name-string)))
+                         (.. obj getClass getDeclaredMethods)))]
+    (. m (setAccessible true))
+    (. m (invoke obj (into-array Object args)))))
+
+
+(defn private-field [obj fn-name-string]
+  (let [m (.. obj getClass (getDeclaredField fn-name-string))]
+    (. m (setAccessible true))
+    (. m (get obj))))
+
+(defn class-private-field [class-field]
+  (let [cls (-> (namespace class-field)
+                symbol
+                resolve)
+        field (name class-field)
+        m (.getDeclaredField cls field)]
+    (. m (setAccessible true))
+    (.get m nil)))
+
 ;;;;;;;;;;; map helper
 
 (defn ns-keyword
@@ -333,7 +354,6 @@
          (build-headers headers)
          "\r\n\r\n"
          body)))
-
 
 (comment
   (assert

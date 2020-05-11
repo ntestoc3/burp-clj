@@ -13,6 +13,7 @@
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.tcrawley/dynapath "1.1.0"] ;; dynamic class loader
                  [camel-snake-kebab "0.4.1"]
+                 [com.fifesoft/autocomplete "3.1.0"]
                  [com.fifesoft/rsyntaxtextarea "3.1.1"]
                  [new-seesaw "0.1.0"]                 ;; 0.1.1添加了javafx依赖
                  [org.clojure/tools.gitlibs "1.0.83"] ;; git download
