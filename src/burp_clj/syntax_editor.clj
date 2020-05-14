@@ -17,6 +17,7 @@
            [org.fife.ui.rsyntaxtextarea
             RSyntaxTextArea
             RSyntaxTextAreaUI]
+           javax.swing.KeyStroke
            javax.swing.UIManager)
   (:require [burp-clj.utils :as utils]
             [seesaw.rsyntax :as rsyntax]
@@ -51,60 +52,48 @@
   []
   (RSyntaxTextArea/setTemplatesEnabled true))
 
-(defn syntax-text-area
-  [{:keys [auto-completion
-           auto-indent
-           anti-aliasing
-           code-folding
-           use-templates]
-    :or {auto-indent true
-         code-folding true
-         anti-aliasing true
-         }} & opts]
-  (let [old-keymap (javax.swing.text.JTextComponent/getKeymap rtextarea-keymap)
-        old-syntax-action (UIManager/get rsyntax-textarea-action-map)
-        old-syntax-input (UIManager/get rsyntax-textarea-input-map)
-        old-action (UIManager/get rtextarea-action-map)
-        old-input (UIManager/get rtextarea-input-map)]
-    (remove-rtextarea-maps!)
-    (try
-      (let [ta (apply rsyntax/text-area opts)]
-        (when auto-completion
-          (.install auto-completion ta))
-        (when auto-indent
-          (.setAutoIndentEnabled ta true))
-        (when anti-aliasing
-          (.setAntiAliasingEnabled ta true))
-        (when code-folding
-          (.setCodeFoldingEnabled ta true))
-        ta)
-      #_(finally
-        (javax.swing.text.JTextComponent/addKeymap rtextarea-keymap old-keymap)
-        (UIManager/put rsyntax-textarea-action-map old-syntax-action)
-        (UIManager/put rsyntax-textarea-input-map old-syntax-input)
-        (UIManager/put rtextarea-action-map old-action)
-        (UIManager/put rtextarea-input-map old-input)))))
+(defn my-completion-provider
+  [init-words]
+  (proxy [DefaultCompletionProvider] [init-words]
+    (isValidChar [ch]
+      (-> (or (Character/isLetterOrDigit ch)
+              (#{\. \_ \' \/ \- \:} ch))
+          boolean))))
 
 (defn make-completion
-  [words comps {:keys [auto-activate
-                       activate-delay
-                       show-desc
-                       use-parameter-assistance
-                       ]
-                :or {auto-activate true
-                     activate-delay 200
-                     }}]
-  (let [provider (DefaultCompletionProvider. (into-array String words))
+  "`init-words` 初始补全的单词列表"
+  [{:keys [auto-activate
+           activate-delay
+           activate-rules
+           show-desc
+           use-parameter-assistance
+           init-words
+           trigger-key
+           completions
+           auto-complete-single
+           ]
+    :or {auto-activate true
+         auto-complete-single false
+         init-words []
+         activate-rules "abcdefghijklmnopqrstuvwxyz.:/-"
+         activate-delay 200
+         }}]
+  (let [init-words (into-array String init-words)
+        provider (my-completion-provider init-words)
         ac (AutoCompletion. provider)]
     (when auto-activate
       (.setAutoActivationEnabled ac true)
-      (.setAutoActivationDelay ac activate-delay))
+      (.setAutoActivationDelay ac activate-delay)
+      (.setAutoActivationRules provider true activate-rules))
     (when show-desc
       (.setShowDescWindow ac true))
     (when use-parameter-assistance
       (.setParameterAssistanceEnabled ac true))
+    (when trigger-key
+      (.setTriggerKey ac (KeyStroke/getKeyStroke trigger-key)))
+    (.setAutoCompleteSingleChoices ac auto-complete-single)
 
-    (doseq [[comp-type comps] comps]
+    (doseq [[comp-type comps] completions]
       (case comp-type
         :basic
         (doseq [{:keys [text desc summary]
@@ -131,39 +120,101 @@
         (log/error :make-completion "unsupport completion type:" comp-type)))
     ac))
 
+(defn syntax-text-area
+  [{:keys [auto-completion
+           auto-indent
+           anti-aliasing
+           input-map
+           action-map
+           code-folding]
+    :or {auto-indent true
+         code-folding true
+         anti-aliasing true
+         }} & opts]
+  (let [old-keymap (javax.swing.text.JTextComponent/getKeymap rtextarea-keymap)
+        old-syntax-action (UIManager/get rsyntax-textarea-action-map)
+        old-syntax-input (UIManager/get rsyntax-textarea-input-map)
+        old-action (UIManager/get rtextarea-action-map)
+        old-input (UIManager/get rtextarea-input-map)]
+    (remove-rtextarea-maps!)
+    (try
+      (let [ta (apply rsyntax/text-area opts)]
+        (when auto-indent
+          (.setAutoIndentEnabled ta true))
+        (when anti-aliasing
+          (.setAntiAliasingEnabled ta true))
+        (when code-folding
+          (.setCodeFoldingEnabled ta true))
+        (when action-map
+          (let [am (.getActionMap ta)]
+            (doseq [[ak action] action-map]
+              (.put am ak action))))
+        (when input-map
+          (let [im (.getInputMap ta)]
+            (doseq [[ik ak] input-map]
+              (.put im (KeyStroke/getKeyStroke ik) ak))))
+        (when auto-completion
+          (-> (make-completion auto-completion)
+              (.install ta)))
+        ta)
+      (finally
+        (javax.swing.text.JTextComponent/addKeymap rtextarea-keymap old-keymap)
+        (UIManager/put rsyntax-textarea-action-map old-syntax-action)
+        (UIManager/put rsyntax-textarea-input-map old-syntax-input)
+        (UIManager/put rtextarea-action-map old-action)
+        (UIManager/put rtextarea-input-map old-input)))))
 
-(def am (make-completion ["request" "response"]
-                         {:basic [{:text "test"}
-                                  {:text "tencent"
-                                   :desc "tencent test"}]
-                          :template [{:text "defun"
-                                      :def-text "(defn fn-name [arg] ...)"
-                                      :template "(defn ${fname} [${arg}]
-  (+ ${arg} 1)
-  ${cursor})"
-                                      }]}
-                         {:use-parameter-assistance true}))
 
 (enable-templates!)
 
 (comment
+
+  (def am {:use-parameter-assistance true
+           :trigger-key "control PERIOD"
+           :activate-delay 10
+           :init-words ["request" "response"]
+           :completions {:basic [{:text "test"}
+                                 {:text "tencent"
+                                  :desc "tencent test"
+                                  :summary "test text"}]
+                         :template [{:text "defun"
+                                     :def-text "(defn fn-name [arg] ...)"
+                                     :template "(defn ${fname} [${arg}]
+  (+ ${arg} 1)
+  ${cursor})"
+                                     :desc "def function"
+                                     :summary "define function template"
+                                     }]}})
+
+
   (def txt (syntax-text-area {:auto-completion am
-                              :use-templates true}
+                              :input-map {"control P" "caret-up"
+                                          "control N" "caret-down"
+                                          "control B" "caret-backward"
+                                          "control F" "caret-forward"
+                                          "control A" "caret-begine-line"
+                                          "control E" "caret-end-line"
+                                          "control D" "delete-next"
+                                          "alt B" "caret-previous-word"
+                                          "alt F" "caret-next-word"
+                                          }
+                              }
                              :syntax :clojure
                              :editable? true
                              :wrap-lines? true
                              :font (font/font :font :monospaced
                                               :size 16)
                              ))
-  (utils/show-ui (RTextScrollPane. txt))
 
+  (utils/show-ui (RTextScrollPane. txt))
 
   (def im (.getInputMap txt))
 
   (def am (.getActionMap txt))
 
-
   (.allKeys im)
+
+  (.allKeys am)
 
   (.get im (javax.swing.KeyStroke/getKeyStroke "LEFT"))
 
@@ -175,15 +226,9 @@
 
   (.get im (javax.swing.KeyStroke/getKeyStroke "control LEFT"))
 
+  (.get im (javax.swing.KeyStroke/getKeyStroke "control RIGHT"))
+
   (.get im (javax.swing.KeyStroke/getKeyStroke "UP"))
-
-  (.put im (javax.swing.KeyStroke/getKeyStroke "control P") "caret-up")
-
-  (.put im (javax.swing.KeyStroke/getKeyStroke "control N") "caret-down")
-
-  (.put im (javax.swing.KeyStroke/getKeyStroke "control B") "caret-backward")
-
-  (.put im (javax.swing.KeyStroke/getKeyStroke "control F") "caret-forward")
 
   )
 

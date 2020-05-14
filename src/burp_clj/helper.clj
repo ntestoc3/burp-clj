@@ -203,7 +203,9 @@
         resp (.getResponse req-resp)
         service (.getHttpService req-resp)]
     (merge
-     {:comment (.getComment req-resp)}
+     {:comment (.getComment req-resp)
+      :request/raw (.getRequest req-resp)
+      :response/raw (.getResponse req-resp)}
      (parse-http-service service)
      (-> (utils/parse-request req)
          (utils/map->nsmap :request true))
@@ -315,9 +317,9 @@
       (set-message [this message]
         (if (= (get-message this) message)
           (log/info :request-response-controller :set-message "same message.")
-          (let [req (or (.getRequest message)
+          (let [req (or (:request/raw message)
                         (byte-array 0))
-                resp (or (.getResponse message)
+                resp (or (:response/raw message)
                          (byte-array 0))]
             (-> (get-request-editor this)
                 (.setMessage req true))
@@ -332,13 +334,13 @@
       IMessageEditorController
       (getHttpService [this]
         (when-let [msg (get-message this)]
-          (.getHttpService msg)))
+          (build-http-service (:host msg) (:port msg) (:protocol msg))))
       (getRequest [this]
         (when-let [msg (get-message this)]
-          (.getRequest msg)))
+          (:request/raw msg)))
       (getResponse [this]
         (when-let [msg (get-message this)]
-          (.getResponse msg))))
+          (:response/raw msg))))
 
     ))
 

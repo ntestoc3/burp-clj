@@ -145,6 +145,12 @@
   (-> (get)
       (.saveExtensionSetting (str k) (pr-str v))))
 
+(defn update-setting!
+  [k update-fn & args]
+  (let [old-v (get-setting k)]
+    (->> (apply update-fn old-v args)
+         (set-setting! k))))
+
 (defmacro defsetting
   [setting-k default-v & [set-arg-validate]]
   (let [sym (-> setting-k
