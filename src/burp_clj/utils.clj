@@ -251,6 +251,19 @@
                     (assoc acc new-kw v))))
               {} m)))
 
+;;;;;;;;;;; converter helper
+(defn try-parse-int
+  ([s] (try-parse-int s 0))
+  ([s default-value]
+   (try (Integer/parseInt s)
+        (catch Exception e default-value))))
+
+(defn try-parse-long
+  ([s] (try-parse-long s 0))
+  ([s default-value]
+   (try (Long/parseLong s)
+        (catch Exception e default-value))))
+
 ;;;;;;;;;;; http helper
 
 
