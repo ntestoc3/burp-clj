@@ -23,10 +23,6 @@
                                      :size 16)
              :foreground "#ff6633"))
 
-(def burp-img (delay (-> (io/resource "resources/Media/icon32.png" (.getClassLoader burp.ICookie))
-                         icon/icon
-                         .getImage)))
-
 (defn show-add-source-dlg
   [parent]
   (let [dlg (gui/dialog
@@ -50,7 +46,7 @@
                                   (gui/alert (format "%s not a valid source!" source))))))
                            :success))]
     (-> (.getOwner dlg)
-        (.setIconImage @burp-img))
+        (.setIconImage @utils/burp-img))
     (-> dlg
         gui/pack!
         gui/show!)))

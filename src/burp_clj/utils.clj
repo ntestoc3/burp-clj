@@ -7,8 +7,10 @@
             [taoensso.timbre.appenders.core :as appenders]
             [cemerick.pomegranate :as pg :refer [add-dependencies]]
             [seesaw.core :as gui]
+            [seesaw.icon :as icon]
             [clojure.string :as str]
-            [me.raynes.fs :as fs])
+            [me.raynes.fs :as fs]
+            [clojure.java.io :as io])
   (:import [clojure.lang DynamicClassLoader RT])
   )
 
@@ -149,12 +151,17 @@
     (load-file (str (fs/file fs/*cwd* path)))))
 
 ;;;;;;;;;;; gui helper
+(def burp-img (delay (-> "resources/Media/icon32.png"
+                         (io/resource (.getClassLoader burp.ICookie))
+                         icon/icon
+                         .getImage)))
 
 (defn show-ui
   ([widget]
    ;; (gui/native!)
    (let [f (gui/frame :title "test ui"
                       :on-close :dispose
+                      :icon @burp-img
                       :content widget)]
      (-> f gui/pack! gui/show!)
      f)))
@@ -222,6 +229,15 @@
         m (.getDeclaredField cls field)]
     (. m (setAccessible true))
     (.get m nil)))
+
+(defn load-exp
+  "如果是错误的表达式则抛出异常,否则返回表达式函数"
+  [exp-s]
+  (add-dep []) ;; 必须加载依赖,否则在awt线程中会执行失败！
+  (let [exp (-> (format "(fn [msg] %s)" exp-s)
+                (load-string))]
+    (exp {})
+    exp))
 
 ;;;;;;;;;;; map helper
 
