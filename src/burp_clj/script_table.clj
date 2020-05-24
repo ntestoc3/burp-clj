@@ -54,6 +54,17 @@
   (require '[seesaw.swingx])
   (let [table-x (utils/dyn-call seesaw.swingx/table-x)
         tbl (table-x :id :script-table
+                     :popup (gui/popup
+                             :items [(gui/menu-item
+                                      :text "reload script"
+                                      :listen [:action (fn [e]
+                                                         (let [tbl (-> (gui/to-root e)
+                                                                       (gui/select [:#script-table]))
+                                                               row (gui/selection tbl)]
+                                                           (when row
+                                                             (-> (table/value-at tbl row)
+                                                                 :script-key
+                                                                 script/reload-script!))))])])
                      :model (make-scripts-model (-> (script/get-scripts)
                                                     fix-script-info)))]
     (-> (.getTableHeader tbl)

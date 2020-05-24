@@ -9,6 +9,7 @@
             [burp-clj.state :as state]
             [clojure.java.io :as io]
             [seesaw.mig :refer [mig-panel]]
+            [seesaw.options :as opts]
             [burp-clj.extender :as extender]
             [burp-clj.script-table :as script-table]
             [burp-clj.utils :as utils]
@@ -16,40 +17,64 @@
             [burp-clj.helper :as helper]))
 
 (defn make-header
-  [text]
+  [{:keys [text bold size]
+    :or {bold true
+         size 16}}]
   (gui/label :text text
              :font (seesaw.font/font :name :monospaced
-                                     :style :bold
-                                     :size 16)
+                                     :style (when bold
+                                              :bold)
+                                     :size size)
              :foreground "#ff6633"))
 
-(defn show-add-source-dlg
-  [parent]
+(defn conform
+  [{:keys [title text type]
+    :or {type :warning}}]
+  (-> (gui/dialog
+       :title title
+       :modal? true
+       :option-type :ok-cancel
+       :content text
+       :type type)
+      (gui/pack!)
+      gui/show!))
+
+(defn input
+  [{:keys [parent title text default-text]
+    :or {text "input info:"
+         title "get info"}}]
   (let [dlg (gui/dialog
              :parent parent
+             :title title
              :modal? true
              :content (mig-panel
                        :border (border/empty-border :left 10 :top 10)
-                       :items [["Enter scripts source:"
+                       :items [[text
                                 "wrap"]
-                               [(gui/text :id :source)
+                               [(gui/text :id :info
+                                          :text default-text)
                                 "grow, wmin 300"]])
              :option-type :ok-cancel
              :success-fn (fn [p]
-                           (let [source (-> (gui/to-root p)
-                                            (gui/select [:#source])
-                                            (gui/text))]
-                             (try
-                               (script/add-script-source! source)
-                               (catch AssertionError _
-                                 (gui/invoke-later
-                                  (gui/alert (format "%s not a valid source!" source))))))
-                           :success))]
+                           (-> (gui/to-root p)
+                               (gui/select [:#info])
+                               (gui/text))))]
     (-> (.getOwner dlg)
         (.setIconImage @utils/burp-img))
     (-> dlg
         gui/pack!
         gui/show!)))
+
+(defn show-add-source-dlg
+  [parent]
+  (let [source (input {:title "add source info"
+                       :parent parent
+                       :text "input source target:"})]
+    (try
+      (script/add-script-source! source)
+      (catch AssertionError _
+        (gui/invoke-later
+         (gui/alert (format "%s not a valid source!" source)))))))
 
 (defn list-with-elem-at-index
   "Given a sequence cur-order and elem-to-move is one of the items
@@ -120,7 +145,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
   []
   (mig-panel
    ;; :border (border/empty-border :left 10 :top 10)
-   :items [[(make-header "Scripts Source")
+   :items [[(make-header {:text "Scripts Source"})
             "span, grow, wrap"]
 
            [(gui/button :text "Add"
@@ -165,7 +190,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
            [(gui/separator)
             "span, wrap"]
 
-           [(make-header "Scripts List")
+           [(make-header {:text "Scripts List"})
             "span, wrap"]
 
            [(script-table/make-table)

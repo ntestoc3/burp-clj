@@ -33,6 +33,13 @@
   (swap! db update :source (fn [v]
                              (remove #(= source %) v))))
 
+(defn load-script-file
+  [clj]
+  (log/info :load-script-file clj)
+  (helper/with-exception-default
+    (log/error :load-script-file clj)
+    (load-file clj)))
+
 (defn- load-dir-scripts
   "加载一个文件下的所有clj文件"
   [dir]
@@ -41,10 +48,7 @@
     (doseq [clj (->> (-> (fs/file dir)
                          (fs/glob "*.clj"))
                      (map str))]
-      (log/info :load-script clj)
-      (helper/with-exception-default
-        (log/error :load-script-file clj)
-        (load-file clj)))))
+      (load-script-file clj))))
 
 (defn load-scripts!
   "加载source下的脚本文件"
@@ -243,7 +247,9 @@
         (log/warn :reg-script! k
                   "min-burp-clj-version bigger than current burp-clj version: "
                   (get-version))
-        (do (->> (assoc info :running false) ;; 初始化运行状态为false
+        (do (->> (assoc info
+                        :running false
+                        :file *file*) ;; 初始化运行状态为false
                  (swap! db update :scripts assoc k))
             true)))))
 
@@ -253,6 +259,15 @@
        (filter (comp :running val))
        keys
        vec))
+
+(defn reload-script!
+  [script-k]
+  (let [info (get-script script-k)
+        running (:running info)]
+    (disable-script! script-k)
+    (load-script-file (:file info))
+    (when running
+      (enable-script! script-k))))
 
 (defn unreg-all-script!
   []
