@@ -231,27 +231,47 @@
       true
       )))
 
+(defn reload-script!
+  [script-k]
+  (utils/add-dep [])
+  (let [info (get-script script-k)
+        running (:running info)]
+    (when running
+      (disable-script! script-k))
+    (load-script-file (:file info))
+    (when running
+      (enable-script! script-k))))
+
 (defn reg-script!
   "注册一个script,成功返回true"
   [k info]
   {:pre [(s/valid? ::specs/script-info info)]}
   (let [old-info (get-script k)]
     ;; 如果有同名的脚本，并且新注册的版本号小于旧的版本号，则不更新
-    (if (and old-info
-             (neg? (version/version-compare (:version info)
-                                            (:version old-info))))
+    (cond
+      (and old-info
+           (neg? (version/version-compare (:version info)
+                                          (:version old-info))))
       (log/warn :reg-script! k "already exist version:" (:version info))
+
       ;; 或者script需要的burp-clj版本号大于当前的burp-script版本号，也不更新
-      (if (pos? (version/version-compare (:min-burp-clj-version info)
-                                         (get-version)))
-        (log/warn :reg-script! k
-                  "min-burp-clj-version bigger than current burp-clj version: "
-                  (get-version))
-        (do (->> (assoc info
-                        :running false
-                        :file *file*) ;; 初始化运行状态为false
-                 (swap! db update :scripts assoc k))
-            true)))))
+      (pos? (version/version-compare (:min-burp-clj-version info)
+                                     (get-version)))
+      (log/warn :reg-script! k
+                "min-burp-clj-version bigger than current burp-clj version: "
+                (get-version))
+
+      :else
+      (do
+        (when (:running old-info)
+          (disable-script! k))
+        (->> (assoc info
+                    :running false
+                    :file *file*) ;; 初始化运行状态为false
+             (swap! db update :scripts assoc k))
+        (when (:running old-info)
+          (enable-script! k))
+        true))))
 
 (defn get-running-scripts
   []
@@ -259,15 +279,6 @@
        (filter (comp :running val))
        keys
        vec))
-
-(defn reload-script!
-  [script-k]
-  (let [info (get-script script-k)
-        running (:running info)]
-    (disable-script! script-k)
-    (load-script-file (:file info))
-    (when running
-      (enable-script! script-k))))
 
 (defn unreg-all-script!
   []
