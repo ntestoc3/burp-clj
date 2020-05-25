@@ -11,7 +11,8 @@
             [clojure.string :as str]
             [me.raynes.fs :as fs]
             [clojure.java.io :as io])
-  (:import [clojure.lang DynamicClassLoader RT])
+  (:import [clojure.lang DynamicClassLoader RT]
+           burp.IHttpRequestResponse)
   )
 
 ;;;;;;;;;;;;;;;; dep helper
@@ -299,24 +300,17 @@
     :else (throw (ex-info "unsupport http message type." {:msg msg}))))
 
 (defn parse-request
-  "解析http请求"
-  [req]
-  (let [[headers body] (-> (->http-message req)
-                           (str/split #"\r?\n\r?\n" 2))
-        [start-line & headers] (str/split headers #"\r?\n")
-        [method uri http-ver] (str/split start-line #"\s")
-        headers (parse-headers headers)]
-    {:method (csk/->kebab-case-keyword method)
-     :host (:host headers)
-     :version http-ver
-     :uri uri
-     :headers (dissoc headers :host)
-     :body (when (seq body)
-             body)}))
-
-(defn parse-request
   "解析http请求 `https`是否使用https,默认为true"
-  ([req] (parse-request req true))
+  ([req]
+   (cond
+     (instance? IHttpRequestResponse req)
+     (let [protocol (-> (.getHttpService req)
+                       (.getProtocol))]
+      (parse-request (.getRequest req)
+                     (= protocol "https")))
+
+     :else
+     (parse-request req true)))
   ([req https]
    (when req
      (let [[headers body] (-> (->http-message req)
