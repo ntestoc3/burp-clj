@@ -225,7 +225,7 @@
   "分析响应"
   [resp]
   (->> (cond-> resp
-         (instance? IHttpRequestResponse resp) (.getResponse resp))
+         (instance? IHttpRequestResponse resp) (.getResponse))
        (.analyzeResponse (get-helper))))
 
 (defn base64-encode
