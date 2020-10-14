@@ -185,7 +185,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
                  "[][][][fill,grow]"
                  ]
    :items [[(script-source-form)
-            "span, wrap"]
+            "span, grow, wrap"]
 
            [(gui/separator)
             "span, wrap"]
@@ -194,4 +194,4 @@ user=> (list-with-elem-at-index l \"b\" 4)
             "span, wrap"]
 
            [(script-table/make-table)
-            "span, wrap"]]))
+            "span, grow"]]))

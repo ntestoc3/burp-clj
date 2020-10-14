@@ -1,5 +1,5 @@
 (def feature-version "0.4")
-(def build-version "0")
+(def build-version "1")
 (def release-version (str feature-version "." build-version))
 (def project-name "burp-clj")
 

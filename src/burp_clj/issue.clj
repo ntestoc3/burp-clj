@@ -48,7 +48,7 @@
   {:pre (s/valid? :burp/issue info)}
   (reify IScanIssue
     (getConfidence [this] (confidence-type (:confidence info)))
-    (getHttpMessages [this] (to-array (:http-messages info)))
+    (getHttpMessages [this] (into-array IHttpRequestResponse (:http-messages info)))
     (getHttpService [this] (:http-service info))
     (getIssueBackground [this] (:background info))
     (getIssueDetail [this] (:detail info))
