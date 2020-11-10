@@ -171,7 +171,10 @@ user=> (list-with-elem-at-index l \"b\" 4)
            [(gui/button :text "Reload Scripts!"
                         :listen [:action (fn [e]
                                            (gui/invoke-later
-                                            (script/reload-sources!)))])
+                                            (gui/config! e :enabled? false)
+                                            (future (script/reload-sources!)
+                                                    (log/info "scripts load ok!")
+                                                    (gui/config! e :enabled? true))))])
             "grow,wrap"]
            ]))
 

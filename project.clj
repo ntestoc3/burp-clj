@@ -1,5 +1,5 @@
 (def feature-version "0.4")
-(def build-version "1")
+(def build-version "2")
 (def release-version (str feature-version "." build-version))
 (def project-name "burp-clj")
 
@@ -25,7 +25,7 @@
                  ]
   :java-source-paths ["java-src"]
   :source-paths ["src"]
-  :uberjar-name ~(str project-name "-" release-version ".jar")
+  :uberjar-name ~(str project-name "-" feature-version ".jar")
   :manifest {"Implementation-Version" ~release-version}
   ;; :omit-source true
   :aot :all
