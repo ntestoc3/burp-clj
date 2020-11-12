@@ -39,8 +39,9 @@
       clojure.pprint/pprint))
 
 (defn add-dep
-  [libs & {:keys [repos classloader]
-           :or {repos default-repo}}]
+  [libs & {:keys [repositories proxy]
+           :or {repositories default-repo}
+           :as args}]
   (log/info :add-dep "class paths:"
             (-> (pg/classloader-hierarchy)
                 pg/get-classpath
@@ -48,11 +49,16 @@
             "base class loader paths:"
             (-> (pg/classloader-hierarchy base-class-loader)
                 pg/get-classpath
-                vec))
+                vec)
+            (when proxy
+              (str "use proxy: " proxy)))
   (let [classloader (ensure-dynamic-classloader)]
-    (add-dependencies :coordinates libs
-                      :repositories repos
-                      :classloader classloader)))
+    (apply add-dependencies
+           :coordinates libs
+           :repositories repositories
+           :classloader classloader
+           (apply concat (dissoc args :repositories)))))
+
 (defn gen-gitkey
   [url]
   (->> (str/split url #"/")

@@ -6,7 +6,10 @@
             [burp-clj.specs :as specs]
             [taoensso.timbre :as log]
             [clojure.edn :as edn]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [camel-snake-kebab.core :as csk]
+            [me.raynes.fs :as fs]
+            [clojure.java.io :as io])
   (:refer-clojure :exclude [get])
   (:import [burp
             ITab
@@ -158,18 +161,26 @@
                 symbol)
         get-fn (symbol (str "get-" sym))
         set-fn (symbol (str "set-" sym "!"))
+        update-fn (symbol (str "update-" sym "!"))
         set-arg (symbol "v")]
     `(do
+       ;; set default value
        (defn ~get-fn
          []
-         (or (get-setting ~setting-k)
-             ~default-v))
+         (defonce init# (when (nil? (get-setting ~setting-k))
+                          (log/info "init:" ~setting-k)
+                          (set-setting! ~setting-k ~default-v)))
+         (get-setting ~setting-k))
 
        (defn ~set-fn
          [~set-arg]
          ~(when set-arg-validate
             `{:pre [(~set-arg-validate ~set-arg)]})
-         (set-setting! ~setting-k ~set-arg)))))
+         (set-setting! ~setting-k ~set-arg))
+
+       (defn ~update-fn
+         [update-fn# & args#]
+         (apply update-setting! ~setting-k update-fn# args#)))))
 
 (defn gen-config-path
   [path]
@@ -279,3 +290,12 @@
   []
   (-> (get)
       (.getProxyHistory)))
+
+(defn get-user-config
+  [& paths]
+  (with-open [rdr (-> (get)
+                      (.saveConfigAsJson (into-array String paths))
+                      (.getBytes)
+                      (java.io.ByteArrayInputStream.)
+                      io/reader)]
+    (json/decode-stream rdr csk/->kebab-case-keyword)))

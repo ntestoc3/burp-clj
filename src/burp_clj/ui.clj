@@ -5,6 +5,7 @@
             [seesaw.color :as color]
             [seesaw.icon :as icon]
             [seesaw.dnd :as dnd]
+            [clojure.edn :as edn]
             [taoensso.timbre :as log]
             [burp-clj.state :as state]
             [clojure.java.io :as io]
@@ -144,7 +145,10 @@ user=> (list-with-elem-at-index l \"b\" 4)
 (defn script-source-form
   []
   (mig-panel
-   ;; :border (border/empty-border :left 10 :top 10)
+   :constraints [""
+                 "[][fill,grow]"
+                 ""
+                 ]
    :items [[(make-header {:text "Scripts Source"})
             "span, grow, wrap"]
 
@@ -152,7 +156,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
                         :listen [:action
                                  (fn [e] (-> (gui/to-root e)
                                              show-add-source-dlg))])
-            "grow"]
+            "growx"]
 
            [(gui/scrollable (source-list))
             "spany 5, grow, wrap, wmin 500"]
@@ -179,6 +183,70 @@ user=> (list-with-elem-at-index l \"b\" 4)
            ]))
 
 
+(defn proxy-form
+  []
+  (let [proxy (helper/get-proxy)]
+    (mig-panel
+     ;; :border (border/empty-border :left 10 :top 10)
+     :items [[(make-header {:text "HTTP Proxy"})
+              "span, grow, wrap"]
+
+             [(gui/checkbox :text "Use HTTP proxy"
+                            :selected? (:enabled proxy)
+                            :listen [:action
+                                     #(->> (gui/selection %1)
+                                           (helper/update-proxy! assoc :enabled))])
+              "span, grow, wrap"]
+
+             ["HTTP proxy host:"]
+             [(gui/text :text (:host proxy)
+                        :listen [:document
+                                 #(->> (gui/text %)
+                                       (helper/update-proxy! assoc :host))])
+              "grow, wrap, wmin 300"]
+
+             ["HTTP proxy port:"]
+             [(gui/text :text (str (:port proxy))
+                        :listen [:focus-lost
+                                 (fn [e]
+                                   (try
+                                     (->> (gui/text e)
+                                          Integer/parseInt
+                                          (helper/update-proxy! assoc :port))
+                                     (catch Exception e
+                                       (gui/alert e
+                                                  (str "not valid port: " (gui/text e))
+                                                  :type :error)
+                                       (gui/invoke-now
+                                        (-> (helper/get-proxy)
+                                            :port
+                                            str
+                                            (gui/text! e))))))])
+              "grow, wrap"]
+
+             ["Username:"]
+             [(gui/text :text (:username proxy)
+                        :listen [:document
+                                 #(->> (gui/text %)
+                                       (helper/update-proxy! assoc :username))])
+              "grow, wrap"]
+
+             ["Password:"]
+             [(gui/text :text (:password proxy)
+                        :listen [:document
+                                 #(->> (gui/text %)
+                                       (helper/update-proxy! assoc :password))])
+              "grow, wrap"]
+
+             ["Exclusion:"]
+             [(gui/text :text (:non-proxy-hosts proxy)
+                        :tip "The list of hosts to exclude from proxying."
+                        :listen [:document
+                                 #(->> (gui/text %)
+                                       (helper/update-proxy! assoc :non-proxy-hosts))])
+              "grow, wrap"]
+             ])))
+
 (defn make-view
   []
   (mig-panel
@@ -187,7 +255,9 @@ user=> (list-with-elem-at-index l \"b\" 4)
                  "[fill,grow]"
                  "[][][][fill,grow]"
                  ]
-   :items [[(script-source-form)
+   :items [[(script-source-form)]
+
+           [(proxy-form)
             "span, grow, wrap"]
 
            [(gui/separator)

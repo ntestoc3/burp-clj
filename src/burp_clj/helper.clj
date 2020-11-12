@@ -349,3 +349,23 @@
   (make-message-editor-controller (.getHttpService http-req-resp)
                                   (.getRequest http-req-resp)
                                   (.getResponse http-req-resp)))
+
+(extender/defsetting :burp-clj/proxy {:enabled false
+                                      :type "http"
+                                      :host "127.0.0.1"
+                                      :port 8080
+                                      :non-proxy-hosts "127.0.0.1|localhost"
+                                      })
+
+(defn get-enabled-proxy
+  []
+  (let [proxy (get-proxy)]
+    (when (:enabled proxy)
+      (dissoc proxy :enabled))))
+
+(defn add-dep-with-proxy
+  [libs & args]
+  (apply utils/add-dep libs
+         :proxy (get-enabled-proxy)
+         ;; :transfer-listener :stdout
+         args))
