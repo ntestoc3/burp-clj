@@ -1,9 +1,11 @@
 (ns burp-clj.filter-exp
+  (:refer-clojure :exclude [eval])
   (:require [instaparse.core :as insta]
             [clojure.edn :as edn]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [taoensso.timbre :as log]))
 
-(def filter-exp
+(def parse
   (insta/parser
    "exp = exp0 | expop
 
@@ -47,7 +49,24 @@
    :auto-whitespace whitespace
    ))
 
-(defn eval-pred [obj exp]
+(defn cast-compare
+  [f-cmp v1 v2]
+  (cond
+    (or (and (number? v1) (number? v2))
+        (and (string? v1) (string? v2)))
+    (f-cmp v1 v2)
+
+    (and (string? v1)
+         (number? v2))
+    (try (f-cmp (edn/read-string v1)
+                v2)
+         (catch Exception e
+           false))
+
+    :else
+    false))
+
+(defn eval [obj exp]
   (insta/transform
    {:not not
     :number #(-> (apply str %&)
@@ -58,12 +77,12 @@
                               (str/join "." (butlast args)))
                             (last args))]
              (get obj k)))
-    :le <=
-    :lt <
-    :ge >=
-    :gt >=
-    :eq ==
-    :neq not=
+    :le (partial cast-compare <=)
+    :lt (partial cast-compare <)
+    :ge (partial cast-compare >=)
+    :gt (partial cast-compare >)
+    :eq (partial cast-compare ==)
+    :neq (partial cast-compare not=)
     :contains str/includes?
     :in (fn [src dst]
           (dst src))
@@ -73,3 +92,27 @@
     }
    exp))
 
+(def failed? insta/failure?)
+
+(defn error-msg
+  [error & {:keys [html]}]
+  (if html
+    (with-out-str
+      (print (format "<html>Parse error at line %d, column %d:<br/>"
+                     (:line error)
+                     (:column error)) )
+      (print (subs (:text error) 0 (:index error))
+             "<font color='red'>"
+             (subs (:text error) (:index error))
+             "</font>"
+             "<br/><br/>")
+      (when-some [reson (:reason error)]
+        (if (= 1 (count reson))
+          (print "Expected:<br/>")
+          (print "Expected one of:<br/>"))
+        (doseq [r (map :expecting reson)]
+          (instaparse.failure/print-reason r)
+          (print "<br/>")))
+      (print "</html>"))
+    (with-out-str
+      (instaparse.failure/pprint-failure error))))

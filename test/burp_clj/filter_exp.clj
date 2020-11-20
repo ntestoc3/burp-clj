@@ -1,16 +1,45 @@
 (ns burp-clj.filter-exp
+  (:refer-clojure :exclude [eval])
   (:require [burp-clj.filter-exp :refer :all]
             [instaparse.core :as insta]
             [clojure.test :refer :all]))
 
 (defn uniq-parse?
   [exp]
-  (= 1 (-> (insta/parses filter-exp exp)
+  (= 1 (-> (insta/parses parse exp)
            count)))
+
+(testing "cast compare"
+  (is (cast-compare == "-1.2" -1.2))
+
+  (is (not (cast-compare not= "1.2" 1.2)))
+
+  (is (not (cast-compare == "" 0)))
+
+  (is (not (cast-compare == nil 0)))
+
+  (is (not (cast-compare > "1.2" 1.5)))
+
+  (is (cast-compare > "1" -1))
+
+  (is (not (cast-compare > "0" 0)))
+
+  (is (cast-compare == "0" 0))
+
+  (is (cast-compare == 0 0))
+
+  (is (not (cast-compare > 1 2)))
+
+  (is (cast-compare < 1 2))
+
+  (is (cast-compare >= (int 100) 100.))
+
+  (is (not (cast-compare > (int 100) (long 100))))
+  )
 
 (testing "filter expr"
   (testing "filter expr parser"
-    (is (insta/failure? (filter-exp "test contains 123'")))
+    (is (insta/failure? (parse "test contains 123'")))
 
     (is (uniq-parse? "test in {1 2, 3 ;  4}"))
 
@@ -38,8 +67,8 @@
               :response/length 42
               :port 80}
         filter-data (fn [exp]
-                      (->> (filter-exp exp)
-                           (eval-pred data)))]
+                      (->> (parse exp)
+                           (eval data)))]
     (is (not (filter-data "test in {1 2  4 \"bb\"}")))
 
     (is (filter-data "test >= 23"))

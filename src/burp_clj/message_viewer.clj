@@ -9,10 +9,12 @@
             [seesaw.mig :refer [mig-panel]]
             [seesaw.keymap :as keymap]
             [seesaw.border :as border]
+            [seesaw.color :as color]
             [burp-clj.utils :as utils]
             [burp-clj.helper :as helper]
             [burp-clj.syntax-editor :as syntax-editor]
             [burp-clj.extender :as extender]
+            [burp-clj.filter-exp :as filter-exp]
             [seesaw.core :as gui])
   (:import javax.swing.ComboBoxEditor
            java.awt.event.KeyEvent
@@ -20,13 +22,20 @@
            ))
 
 
-(def get-filter-pred utils/load-exp)
+(defn get-filter-pred [txt]
+  (let [exp (filter-exp/parse txt)]
+    (if (filter-exp/failed? exp)
+      (throw (ex-info (filter-exp/error-msg exp :html true) exp))
+      #(filter-exp/eval %1 exp))))
 
 (defn make-http-message-model
   [{:keys [filter-pred datas columns]}]
-  (let [pred-fn (try (get-filter-pred filter-pred)
-                     (catch Exception e
-                       (constantly false)))
+  (let [pred-fn (if (or (nil? filter-pred)
+                        (empty? (str/trim filter-pred)))
+                  identity
+                  (try (get-filter-pred filter-pred)
+                       (catch Exception e
+                         (constantly false))))
         pred (fn [data]
                (helper/with-exception-default nil
                  (pred-fn data)))]
@@ -38,9 +47,9 @@
   [syntax-text-area]
   (let [actions (atom #{})]
     (keymap/map-key syntax-text-area
-                    "control ENTER" (fn [e]
-                                      (doseq [a @actions]
-                                        (.actionPerformed a e)))
+                    "ENTER" (fn [e]
+                              (doseq [a @actions]
+                                (.actionPerformed a e)))
                     :scope :self)
     (reify ComboBoxEditor
       (addActionListener [this listener]
@@ -60,19 +69,16 @@
   "创建编辑器带自动完成的combbox"
   [{:keys [setting-key auto-completion item-validation editor-options]
     :or {item-validation identity
-         editor-options [:wrap-lines? true
-                         :font (font/font :font :monospaced
-                                          :size 20)
-                         ]}}]
+         editor-options [:font (font/font :font :monospaced
+                                          :size 20)]}}]
   (let [datas (extender/get-setting setting-key)
         cb (gui/combobox :model datas
                          :editable? true)
         model (.getModel cb)
         editor (apply syntax-editor/syntax-text-area
                       {:auto-completion auto-completion
-                       :input-map {"control P" "caret-up"
-                                   "control N" "caret-down"
-                                   "control B" "caret-backward"
+                       :background (color/default-color "TextArea.background")
+                       :input-map {"control B" "caret-backward"
                                    "control F" "caret-forward"
                                    "control A" "caret-begin-line"
                                    "control E" "caret-end-line"
@@ -85,15 +91,15 @@
                       editor-options)
         combox-editor (make-syntax-combox-editor editor)]
     (->> (.getSize model)
-         (.insertElementAt model "clear all"))
+         (.insertElementAt model "clear all..."))
     (.addActionListener combox-editor
                         (gui/action
                          :name "check syntax"
                          :handler (fn [e]
                                     (let [txt (gui/text e)]
                                       (cond
-                                        (empty? txt)
-                                        (->> (border/line-border :color Color/RED)
+                                        (empty? (str/trim txt))
+                                        (->> (border/line-border :color Color/BLACK)
                                              (.setBorder editor))
 
                                         (= (.getElementAt model 0) txt)
@@ -116,54 +122,39 @@
                 (fn [e]
                   (let [exp (gui/selection cb)]
                     (log/info "cb selection:" exp)
-                    (when (and (= exp "clear all")
+                    (when (and (= exp "clear all...")
                                (> (.getSize model) 1))
                       (log/info "clear all filter info:" setting-key)
                       (.removeAllElements model)
                       (extender/set-setting! setting-key '())
-                      (.addElement model "clear all")))))
+                      (.addElement model "")
+                      (.addElement model "clear all...")))))
     (.setEditor cb combox-editor)
     cb))
 
 (defn http-message-viewer
   "创建http消息查看器"
-  [{:keys [columns datas setting-key auto-completion-words width height]
+  [{:keys [columns datas setting-key ac-words width height]
     :or {width 1000
-         height 600
-         auto-completion-words ["request"
-                                "response"
-                                "reverse"
-                                "str/split"
-                                "str/reverse"
-                                "str/includes?"
-                                "utils/try-parse-int"
-                                "utils/try-parse-long"
-                                "re-find"
-                                "re-match"
-                                "first"
-                                "msg"]}}]
-  (let [auto-completion-words (->> (first @datas)
-                                   keys
-                                   (map str)
-                                   (concat  auto-completion-words))
+         height 600}}]
+  (let [auto-completion-words (concat ["contains"
+                                       "in"
+                                       "matches"]
+                                      ac-words)
         filter-cb (make-ac-combox {:setting-key setting-key
                                    :item-validation (fn [txt]
                                                       (try (get-filter-pred txt)
                                                            true
                                                            (catch Exception e
                                                              (gui/invoke-later
-                                                              (gui/alert
-                                                               (format "%s error filter expression:%s"
-                                                                       txt
-                                                                       e)))
+                                                              (gui/alert (ex-message e)))
                                                              false
                                                              )))
                                    :auto-completion {:use-parameter-assistance false
                                                      :trigger-key "control PERIOD"
                                                      :activate-delay 10
                                                      :init-words auto-completion-words}
-                                   :editor-options [:syntax :clojure
-                                                    :rows 3]
+                                   :editor-options [:syntax :c]
                                    })
         tbl (guix/table-x :id :http-message-table
                           :selection-mode :single
@@ -229,10 +220,18 @@
                   {:key :port :text "PORT" :class java.lang.Long}
                   {:key :comment :text "Comment" :class java.lang.String}])
 
-  (utils/show-ui (message-viewer/http-message-viewer
+  (defn ->filter-obj-name [k]
+    (if-some [ns (namespace k)]
+      (str ns "." (name k))
+      (name k)))
+
+  (utils/show-ui (http-message-viewer
                   {:datas ds
                    :columns cols-info
                    :setting-key :add-csrf/macro
+                   :ac-words (->> (first datas)
+                                  keys
+                                  (map ->filter-obj-name))
                    }))
 
   (helper/set-message e1  (first hs) )
@@ -280,7 +279,7 @@
                                                     (catch Exception e
                                                       (gui/invoke-later
                                                        (gui/alert
-                                                        (format "%s error filter expression:%s"
+                                                        (format "filter expression: %s"
                                                                 txt
                                                                 (.getMessage e))))
                                                       false
