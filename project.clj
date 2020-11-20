@@ -22,6 +22,7 @@
                  [camel-snake-kebab "0.4.2"]
                  [me.raynes/fs "1.4.6"]         ;; fs utils
                  [com.taoensso/timbre "4.10.0"] ;; logger
+                 [instaparse "1.4.10"]
                  ]
   :java-source-paths ["java-src"]
   :source-paths ["src"]
