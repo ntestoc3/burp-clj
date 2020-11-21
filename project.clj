@@ -13,11 +13,9 @@
                  [com.cemerick/pomegranate "1.1.0"]
                  [org.tcrawley/dynapath "1.1.0"] ;; dynamic class loader
                  [camel-snake-kebab "0.4.1"]
-                 [com.fifesoft/autocomplete "3.1.0"]
-                 [com.fifesoft/rsyntaxtextarea "3.1.1"]
                  [org.clojure/tools.gitlibs "1.0.83"] ;; git download
                  [cheshire "5.10.0"] ;; json
-                 [ntestoc/seesaw "0.1.0"]
+                 [ntestoc/seesaw "0.1.1"]
                  [version-clj "0.1.2"]
                  [camel-snake-kebab "0.4.2"]
                  [me.raynes/fs "1.4.6"]         ;; fs utils
