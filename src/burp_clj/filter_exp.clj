@@ -1,13 +1,14 @@
 (ns burp-clj.filter-exp
   (:refer-clojure :exclude [eval])
-  (:require [instaparse.core :as insta]
+  (:require [instaparse.core :as insta :refer [defparser]]
             [clojure.edn :as edn]
             [clojure.string :as str]
             [taoensso.timbre :as log]))
 
-(def parse
-  (insta/parser
-   "exp = exp0 | expop
+(def whitespace (insta/parser "whitespace = #'\\s+'"))
+
+(defparser parse
+ "exp = exp0 | expop
 
     (* BEGIN PRECEDENCE *)
     <exp0> = obj | cmp_exp | <'('> exp <')'>
@@ -46,8 +47,8 @@
     <d_str> = <'\"'> #'[^\"]*' <'\"'>
     <s_str> = <'\\''> #'[^\\']*' <'\\''>
     "
-   :auto-whitespace whitespace
-   ))
+ :auto-whitespace whitespace
+ )
 
 (defn cast-compare
   [f-cmp v1 v2]
