@@ -78,6 +78,14 @@
 
       (is (filter-data "test contains '12'"))
 
+      (is (not (filter-data "nokey contains 'aa'")))
+
+      (is (not (filter-data "response.body matches 'response'")))
+
+      (is (filter-data "response.body matches '^response.*'"))
+
+      (is (not (filter-data "request.body matches 'req'")))
+
       (is (filter-data "!(!port == 80)"))
 
       (is (filter-data "test > 100 && port > 100 || response.body contains 'data'"))

@@ -67,6 +67,16 @@
     :else
     false))
 
+(defn ->filter-obj-name [k]
+  (if-some [ns (namespace k)]
+    (str ns "." (name k))
+    (name k)))
+
+(defn ->keyword [obj-paths]
+  (keyword (when (> (count obj-paths) 1)
+             (str/join "." (butlast obj-paths)))
+           (last obj-paths)))
+
 (defn eval [obj exp]
   (insta/transform
    {:not not
@@ -74,17 +84,21 @@
                  edn/read-string)
     :set #(set %&)
     :obj (fn [& args]
-           (let [k (keyword (when (> (count args) 1)
-                              (str/join "." (butlast args)))
-                            (last args))]
-             (get obj k)))
+           (->> (->keyword args)
+                (get obj)))
     :le (partial cast-compare <=)
     :lt (partial cast-compare <)
     :ge (partial cast-compare >=)
     :gt (partial cast-compare >)
     :eq (partial cast-compare ==)
     :neq (partial cast-compare not=)
-    :contains str/includes?
+    :contains (fn [s subs]
+                (when-not (nil? s)
+                  (str/includes? (str s) subs)))
+    :matches (fn [s re-s]
+               (when-not (nil? s)
+                 (-> (re-pattern re-s)
+                     (re-matches (str s)))))
     :in (fn [src dst]
           (dst src))
     :and #(and %1 %2)

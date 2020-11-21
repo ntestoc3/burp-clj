@@ -220,18 +220,13 @@
                   {:key :port :text "PORT" :class java.lang.Long}
                   {:key :comment :text "Comment" :class java.lang.String}])
 
-  (defn ->filter-obj-name [k]
-    (if-some [ns (namespace k)]
-      (str ns "." (name k))
-      (name k)))
-
   (utils/show-ui (http-message-viewer
                   {:datas ds
                    :columns cols-info
                    :setting-key :add-csrf/macro
                    :ac-words (->> (first datas)
                                   keys
-                                  (map ->filter-obj-name))
+                                  (map filter-exp/->filter-obj-name))
                    }))
 
   (helper/set-message e1  (first hs) )
