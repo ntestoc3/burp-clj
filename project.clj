@@ -15,9 +15,9 @@
                  [camel-snake-kebab "0.4.1"]
                  [com.fifesoft/autocomplete "3.1.0"]
                  [com.fifesoft/rsyntaxtextarea "3.1.1"]
-                 [new-seesaw "0.1.0"]                 ;; 0.1.1添加了javafx依赖
                  [org.clojure/tools.gitlibs "1.0.83"] ;; git download
                  [cheshire "5.10.0"] ;; json
+                 [ntestoc/seesaw "0.1.0"]
                  [version-clj "0.1.2"]
                  [camel-snake-kebab "0.4.2"]
                  [me.raynes/fs "1.4.6"]         ;; fs utils
