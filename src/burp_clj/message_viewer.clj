@@ -68,27 +68,30 @@
 (defn make-ac-combox
   "创建编辑器带自动完成的combbox"
   [{:keys [setting-key auto-completion item-validation editor-options]
-    :or {item-validation identity
-         editor-options [:font (font/font :font :monospaced
-                                          :size 20)]}}]
+    :or {item-validation identity}}]
   (let [datas (extender/get-setting setting-key)
         cb (gui/combobox :model datas
                          :editable? true)
         model (.getModel cb)
+        editor-options (merge {:font (font/font :font :monospaced
+                                                :size 20)
+                               :anti-aliasing? true
+                               :highlight-current-line? false
+                               }
+                              editor-options)
         editor (apply syntax-editor/syntax-text-area
                       {:auto-completion auto-completion
-                       :background (color/default-color "TextArea.background")
-                       :input-map {"control B" "caret-backward"
-                                   "control F" "caret-forward"
-                                   "control A" "caret-begin-line"
-                                   "control E" "caret-end-line"
-                                   "control D" "delete-next"
-                                   "control K" "RTA.DeleteRestOfLineAction"
-                                   "alt K" "RTA.DeleteLineAction"
-                                   "alt B" "caret-previous-word"
-                                   "alt F" "caret-next-word"
-                                   }}
-                      editor-options)
+                       :key-maps {"control B" "caret-backward"
+                                  "control F" "caret-forward"
+                                  "control A" "caret-begin-line"
+                                  "control E" "caret-end-line"
+                                  "control D" "delete-next"
+                                  "control K" "RTA.DeleteRestOfLineAction"
+                                  "alt K" "RTA.DeleteLineAction"
+                                  "alt B" "caret-previous-word"
+                                  "alt F" "caret-next-word"
+                                  }}
+                      (apply concat editor-options))
         combox-editor (make-syntax-combox-editor editor)]
     (->> (.getSize model)
          (.insertElementAt model "clear all..."))
@@ -150,11 +153,12 @@
                                                               (gui/alert (ex-message e)))
                                                              false
                                                              )))
-                                   :auto-completion {:use-parameter-assistance false
+                                   :auto-completion {:provider {:ac-words auto-completion-words}
+                                                     :parameter-assistance? false
+                                                     :auto-activation? true
                                                      :trigger-key "control PERIOD"
-                                                     :activate-delay 10
-                                                     :init-words auto-completion-words}
-                                   :editor-options [:syntax :c]
+                                                     :delay 10}
+                                   :editor-options {:syntax :c}
                                    })
         tbl (guix/table-x :id :http-message-table
                           :selection-mode :single
@@ -229,44 +233,20 @@
                                   (map filter-exp/->filter-obj-name))
                    }))
 
-  (helper/set-message e1  (first hs) )
-
-  (helper/set-message e1  (nth hs 2) )
-
-  (def s1 (syntax-editor/syntax-text-area
-           {:auto-completion {:use-parameter-assistance true
-                              :trigger-key "control PERIOD"
-                              :activate-delay 10
-                              :init-words ["request" "response" "defn" "reverse" "str/split"
-                                           "str/reverse"]
-                              :completions {:basic [{:text "test"}
-                                                    {:text "tencent"
-                                                     :desc "tencent test"
-                                                     :summary "test text"}]}}
-            :input-map {"control P" "caret-up"
-                        "control N" "caret-down"
-                        "control B" "caret-backward"
-                        "control F" "caret-forward"
-                        "control A" "caret-begine-line"
-                        "control E" "caret-end-line"
-                        "control D" "delete-next"
-                        "alt B" "caret-previous-word"
-                        "alt F" "caret-next-word"
-                        }
-            }
-           ))
-
-
   (def acb (make-ac-combox {:setting-key :csrf-filter
-                            :auto-completion {:use-parameter-assistance true
+                            :auto-completion {:parameter-assistance? true
                                               :trigger-key "control PERIOD"
-                                              :activate-delay 10
-                                              :init-words ["request" "response" "defn" "reverse" "str/split"
-                                                           "str/reverse"]
-                                              :completions {:basic [{:text "test"}
-                                                                    {:text "tencent"
-                                                                     :desc "tencent test"
-                                                                     :summary "test text"}]}}
+                                              :delay 10
+                                              :provider {:ac-words ["request"
+                                                                    "response"
+                                                                    "defn"
+                                                                    "reverse"
+                                                                    "str/split"
+                                                                    "str/reverse"]
+                                                         :completions {:basic [{:text "test"}
+                                                                               {:text "tencent"
+                                                                                :desc "tencent test"
+                                                                                :summary "test text"}]}}}
                             :item-validation (fn [txt]
                                                (prn "validate:" txt)
                                                (try (get-filter-pred txt)
