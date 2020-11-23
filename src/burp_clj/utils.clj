@@ -288,21 +288,84 @@
         (catch Exception e default-value))))
 
 ;;;;;;;;;;; http helper
-
+(defn- gen-format-fn
+  [{:keys [ignore-case
+           ignore-space]
+    :or {ignore-case true
+         ignore-space true}}]
+  (->> (cond-> []
+         ignore-case (conj str/lower-case)
+         ignore-space (conj str/trim)
+         :always (conj name))
+       (apply comp)))
 
 (defn parse-headers
-  ([headers] (parse-headers headers true))
-  ([headers format-key]
-   (->> headers
+  "解析http header, 忽略status line
+  `hls`为包含HTTP header line的seq
+  `k` 要查找的key
+
+  可选选项
+  :key-fn key转换函数，默认转换为clojure keyworde格式
+  :val-fn value转换函数，默认为`clojure.string/trim`
+  "
+  ([hls] (parse-headers hls nil))
+  ([hls {:keys [key-fn val-fn]
+         :or {key-fn csk/->kebab-case-keyword
+              val-fn str/trim}}]
+   (->> hls
         (map #(str/split %1 #":\s+" 2))
         (filter #(= 2 (count %)))
-        (map (fn [[k v]] [(if format-key
-                            (csk/->kebab-case-keyword k)
-                            k)
-                          v]))
-        (into {}))))
+        (map (fn [[k v]] [(key-fn k)
+                          (val-fn v)])))))
 
-(defn ->http-message
+(defn get-headers
+  "从hdr中查找k的所有值,结果为seq类型
+
+  `hdr` http header结构
+  `k` 要查找的key
+
+  可选选项:
+  :ignore-case 比较header key忽略大小写,默认为true
+  :ignore-space 比较header key忽略首尾空格,默认为true
+  "
+  ([hdr k] (get-headers hdr k nil))
+  ([hdr k opts]
+   (let [format-fn (gen-format-fn opts)
+         find-k (format-fn k)]
+     (->> hdr
+          (map (fn [[k v]]
+                 (when (= find-k (format-fn k))
+                   v)))
+          (filter identity)))))
+
+(defn insert-headers
+  "向http头结构中插入http头,hdr与hdr2结构相同
+
+  `pos-k`  如果指定`pos-k`，则在`pos-k`之前或之后插入hdr2 http头,否则在最后插入hdr2
+
+  可选选项:
+  :ignore-case 比较key忽略大小写,默认为true
+  :ignore-space 比较key忽略首尾空格,默认为true
+  :insert-before 如果为true,则在`pos-k`项之前插入`hdr2`,默认为false
+  "
+  ([hdr hdr2]
+   (concat hdr hdr2))
+  ([hdr hdr2 pos-k]
+   (insert-headers hdr hdr2 pos-k nil))
+  ([hdr hdr2 pos-k {:keys [insert-before] :as opts}]
+   (let [format-fn (gen-format-fn opts)
+         find-k (format-fn pos-k)
+         [left right] (split-with
+                       (fn [[k _]]
+                         (not (= find-k (format-fn k))))
+                       hdr)]
+     (apply concat left (if insert-before
+                          [hdr2 right]
+                          [(when (seq right)
+                             (take 1 right))
+                           hdr2
+                           (rest right)])))))
+(defn- ->http-raw
   [msg]
   (cond
     (string? msg) msg
@@ -310,87 +373,91 @@
     :else (throw (ex-info "unsupport http message type." {:msg msg}))))
 
 (defn parse-request
-  "解析http请求 `https`是否使用https,默认为true"
-  ([req]
-   (cond
-     (instance? IHttpRequestResponse req)
-     (let [protocol (-> (.getHttpService req)
-                        (.getProtocol))]
-       (parse-request (.getRequest req)
-                      (= protocol "https")))
+  "解析http请求
 
-     :else
-     (parse-request req true)))
-  ([req https]
+  `opts`参数:
+
+  解析header相关
+  :key-fn http header key转换函数，默认为identity
+  :val-fn value转换函数，默认为`clojure.string/trim`"
+  ([req] (parse-request req nil))
+  ([req opts]
    (when req
-     (let [[headers body] (-> (->http-message req)
+     (let [[headers body] (-> (->http-raw req)
                               (str/split #"\r?\n\r?\n" 2))
            [start-line & headers] (str/split headers #"\r?\n")
            [method uri http-ver] (str/split start-line #"\s")
-           headers (parse-headers headers)]
+           headers (parse-headers headers opts)]
        {:method (csk/->kebab-case-keyword method)
-        :host (:host headers)
+        :url uri
         :version (-> (str/split http-ver #"/")
                      last)
-        :url (str (if https
-                    "https://"
-                    "http://")
-                  (:host headers) uri)
-        :headers (dissoc headers :host)
+        :headers headers
         :body (when (seq body)
                 body)}))))
 
 (defn parse-response
-  "解析http响应"
-  [resp]
-  (when resp
-    (let [[headers body] (-> (->http-message resp)
-                             (str/split #"\r?\n\r?\n" 2))
-          [start-line & headers] (str/split headers #"\r?\n")
-          [http-ver status-code] (str/split start-line #"\s")
-          headers (parse-headers headers)]
-      {:status (Integer/parseInt status-code)
-       :version (-> (str/split http-ver #"/")
-                    last)
-       :headers headers
-       :body body})))
+  "解析http响应
 
-(defn build-headers
-  "构造http headers
-  `format-key`指定是否统一header key为标准格式,默认为true, 如果为false则保持原始的header key格式"
-  ([headers] (build-headers headers true))
-  ([headers format-key]
+   `opts`参数:
+
+  解析header相关
+  :key-fn key转换函数，默认为identity
+  :val-fn value转换函数，默认为`clojure.string/trim`
+  "
+  ([resp] (parse-response resp nil))
+  ([resp opts]
+   (when resp
+     (let [[headers body] (-> (->http-raw resp)
+                              (str/split #"\r?\n\r?\n" 2))
+           [start-line & headers] (str/split headers #"\r?\n")
+           [http-ver status-code] (str/split start-line #"\s")
+           headers (parse-headers headers opts)]
+       {:status (try-parse-int status-code)
+        :version (-> (str/split http-ver #"/")
+                     last)
+        :headers headers
+        :body body}))))
+
+(defn- build-headers
+  "构造http headers"
+  ([headers] (build-headers headers nil))
+  ([headers {:keys [key-fn val-fn]
+             :or {key-fn csk/->HTTP-Header-Case-String
+                  val-fn identity}}]
    (->> headers
         (map (fn [[k v]]
-               (str (if format-key
-                      (csk/->HTTP-Header-Case-String k)
-                      (name k))
-                    ": " v)))
+               (str (key-fn k)
+                    ": "
+                    (val-fn v))))
         (str/join "\r\n"))))
 
-(defn build-req-uri
-  [uri]
-  (let [path (.getPath uri)
-        query (.getQuery uri)]
-    (str (if (empty? path)
-           "/"
-           path)
-         (when query
-           (str "?" query)))))
+(defn build-request-raw
+  "构造http请求原始字符串
 
-(defn build-request
-  [{:keys [method url body headers version]
+
+  :fix-content-length 修正Content-Length的值，默认为true
+  :key-fn http header key转换函数，默认为转换HttpHeaderCase格式
+  :val-fn http header value转换函数，默认为identity "
+  [{:keys [method
+           url
+           version
+           body
+           headers
+           fix-content-length]
     :or {method :get
-         version "1.1"}}]
-  (let [u (java.net.URL. url)
-        req-uri (build-req-uri u)
-        body-count (count body)
-        headers (assoc headers
-                       :content-length body-count
-                       :host (.getHost u))]
+         version "1.1"
+         fix-content-length true}
+    :as opts}]
+  (let [headers (cond-> headers
+                  (and (= :get method)
+                       (get-headers headers "transfer-encoding")
+                       fix-content-length) (insert-headers
+                                            [["Content-Length" (count body)]]))]
 
-    (str (str/upper-case (name method)) " " req-uri " HTTP/" version "\r\n"
-         (build-headers headers)
+    (str (-> (name method)
+             str/upper-case) " " url " HTTP/" version "\r\n"
+         (build-headers headers opts)
          "\r\n\r\n"
          body)))
 
