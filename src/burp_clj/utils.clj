@@ -291,12 +291,16 @@
 
 
 (defn parse-headers
-  [headers]
-  (->> headers
-       (map #(str/split %1 #":\s+" 2))
-       (filter #(= 2 (count %)))
-       (map (fn [[k v]] [(csk/->kebab-case-keyword k) v]))
-       (into {})))
+  ([headers] (parse-headers headers true))
+  ([headers format-key]
+   (->> headers
+        (map #(str/split %1 #":\s+" 2))
+        (filter #(= 2 (count %)))
+        (map (fn [[k v]] [(if format-key
+                            (csk/->kebab-case-keyword k)
+                            k)
+                          v]))
+        (into {}))))
 
 (defn ->http-message
   [msg]
@@ -311,9 +315,9 @@
    (cond
      (instance? IHttpRequestResponse req)
      (let [protocol (-> (.getHttpService req)
-                       (.getProtocol))]
-      (parse-request (.getRequest req)
-                     (= protocol "https")))
+                        (.getProtocol))]
+       (parse-request (.getRequest req)
+                      (= protocol "https")))
 
      :else
      (parse-request req true)))
@@ -352,11 +356,17 @@
        :body body})))
 
 (defn build-headers
-  [headers]
-  (some->> headers
-           (map (fn [[k v]]
-                  (str (csk/->HTTP-Header-Case-String k) ": " v)))
-           (str/join "\r\n")))
+  "构造http headers
+  `format-key`指定是否统一header key为标准格式,默认为true, 如果为false则保持原始的header key格式"
+  ([headers] (build-headers headers true))
+  ([headers format-key]
+   (->> headers
+        (map (fn [[k v]]
+               (str (if format-key
+                      (csk/->HTTP-Header-Case-String k)
+                      (name k))
+                    ": " v)))
+        (str/join "\r\n"))))
 
 (defn build-req-uri
   [uri]
@@ -375,9 +385,9 @@
   (let [u (java.net.URL. url)
         req-uri (build-req-uri u)
         body-count (count body)
-        headers (cond-> headers
-                  (pos? body-count) (assoc :content-length body-count)
-                  :always (assoc :host (.getHost u)))]
+        headers (assoc headers
+                       :content-length body-count
+                       :host (.getHost u))]
 
     (str (str/upper-case (name method)) " " req-uri " HTTP/" version "\r\n"
          (build-headers headers)
