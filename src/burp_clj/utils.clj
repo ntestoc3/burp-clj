@@ -379,16 +379,39 @@
                            hdr2
                            (rest right)])))))
 
-(defn find-key-index
-  ([hdr k] (find-key-index hdr k nil))
+(defn find-index-kv
+  ([hdr k] (find-index-kv hdr k nil))
   ([hdr k opts]
    (let [format-fn (gen-format-fn opts)
          find-k (format-fn k)]
      (->> hdr
-          (keep-indexed (fn [idx [k _]]
+          (keep-indexed (fn [idx [k v]]
                           (when (= find-k (format-fn k))
-                            [idx k])))
+                            [idx k v])))
           first))))
+
+(defn update-header
+  "修改http headere的值
+  `k` 要修改的header key,如果找不到,则在header最后添加k v
+  `f` 更新函数(f v),v为k对应的值,如果找不到则为nil
+
+  可选选项:
+  :ignore-case 比较key忽略大小写,默认为true
+  :ignore-space 比较key忽略首尾空格,默认为true
+  :keep-old-key 是否使用原先的key,默认为true,
+                如果为flase，则使用`k`代替原先的key
+                如果找不到key，总是使用给定的`k`
+  "
+  ([hdr k f] (update-header hdr k f nil))
+  ([hdr k f {:keys [keep-old-key]
+             :or {keep-old-key true}
+             :as opts}]
+   (let [[idx old-k v] (or (find-index-kv hdr k opts)
+                           [(count hdr) k nil])]
+     (assoc-at hdr idx [(if keep-old-key
+                          old-k
+                          k)
+                        (f v)]))))
 
 (defn assoc-header
   "修改http headere的值
@@ -405,12 +428,7 @@
   ([hdr k v {:keys [keep-old-key]
              :or {keep-old-key true}
              :as opts}]
-   (let [[idx old-k] (or (find-key-index hdr k opts)
-                         [(count hdr) k])]
-     (assoc-at hdr idx [(if keep-old-key
-                          old-k
-                          k)
-                        v]))))
+   (update-header hdr k (constantly v) opts)))
 
 (defn ->bytes
   [data]
