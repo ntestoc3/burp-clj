@@ -420,6 +420,14 @@
     :else (throw (ex-info (format "unsupport ->bytes format: %s." (type data))
                           {:data data}))))
 
+(defn ->string
+  [data]
+  (cond
+    (string? data) data
+    (bytes? data) (String. data)
+    :else (throw (ex-info (format "unsupport ->string format: %s." (type data))
+                          {:data data}))))
+
 (defn- ->http-raw
   [msg]
   (cond

@@ -298,11 +298,6 @@
    (-> (get-helper)
        (.buildHttpService host port use-https-or-protocol))))
 
-(defn bytes->str
-  [bs]
-  (-> (get-helper)
-      (.bytesToString bs)))
-
 (defn make-message-editor-controller
   [service req resp]
   (reify IMessageEditorController

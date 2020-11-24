@@ -1,6 +1,7 @@
 (ns burp-clj.context-menu
   (:require [seesaw.core :as gui]
-            [burp-clj.helper :as helper])
+            [burp-clj.helper :as helper]
+            [burp-clj.utils :as utils])
   (:import [burp
             IContextMenuInvocation
             IContextMenuFactory]
@@ -30,7 +31,7 @@
             [start end] sel]
         ;; (log (format "sel:[%d %d]" start end))
         (-> (Arrays/copyOfRange data start end)
-            helper/bytes->str)))))
+            utils/->string)))))
 
 (defn make-context-menu
   [supported-context gen-menu-items-fn]
