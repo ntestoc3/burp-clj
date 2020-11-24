@@ -143,7 +143,7 @@
   (let [auto-completion-words (concat ["contains"
                                        "in"
                                        "matches"]
-                                      ac-words)
+                                      (map filter-exp/->filter-obj-name ac-words))
         filter-cb (make-ac-combox {:setting-key setting-key
                                    :item-validation (fn [txt]
                                                       (try (get-filter-pred txt)

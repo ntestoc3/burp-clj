@@ -195,21 +195,37 @@
    :body-offset (parse-body-offset resp)
    :cookies (parse-resp-cookies resp)})
 
+(defn get-full-host
+  [http-service]
+  (str (:protocol http-service)
+       "://"
+       (:host http-service)
+       (when-not (or
+                  (and (= (:protocol http-service) "http")
+                       (= (:port http-service) 80))
+                  (and (= (:protocol http-service) "https")
+                       (= (:port http-service) 443)))
+         (str ":" (:port http-service)))))
+
 (defn parse-http-req-resp
   "解析http req resp消息，
   `req-resp` IHttpRequestResponse"
   [req-resp]
   (let [req (.getRequest req-resp)
         resp (.getResponse req-resp)
-        service (.getHttpService req-resp)]
+        service (-> (.getHttpService req-resp)
+                    parse-http-service)]
     (merge
      {:comment (.getComment req-resp)
       :request/raw (.getRequest req-resp)
-      :response/raw (.getResponse req-resp)}
-     (parse-http-service service)
+      :response/raw (.getResponse req-resp)
+      :full-host (get-full-host service)}
+     service
      (-> (utils/parse-request req)
+         (update :headers #(into {} %1))
          (utils/map->nsmap :request true))
      (-> (utils/parse-response resp)
+         (update :headers #(into {} %1))
          (utils/map->nsmap :response true)))))
 
 (defn analyze-request
@@ -340,9 +356,31 @@
           (:request/raw msg)))
       (getResponse [this]
         (when-let [msg (get-message this)]
-          (:response/raw msg))))
+          (:response/raw msg))))))
 
-    ))
+(defn ->http-service
+  [service]
+  (cond
+    (instance? IHttpService service)
+    service
+
+    (map? service)
+    (build-http-service (:host service)
+                        (:port service)
+                        (:protocol service))
+
+    :else
+    (throw (ex-info "unsupport http service type." {:service service}))))
+
+(defn send-http-raw
+  "发送http请求，返回 IHttpRequestResponse
+
+  `service` IHttpService或者{:host host, :port port, :protocol \"http\"}
+  `http-raw` 要发送的http原始消息
+  "
+  [service http-raw]
+  (-> (->http-service service)
+      (extender/make-http-req (utils/->bytes http-raw))))
 
 (defn ->msg-controller
   [^IHttpRequestResponse http-req-resp]

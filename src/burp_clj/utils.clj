@@ -313,7 +313,8 @@
          :or {key-fn csk/->kebab-case-keyword
               val-fn str/trim}}]
    (->> hls
-        (map #(str/split %1 #":\s+" 2))
+        ;; TODO 这里为了兼容性,header kv的分隔没有加空格
+        (map #(str/split %1 #":" 2))
         (filter #(= 2 (count %)))
         (map (fn [[k v]] [(key-fn k)
                           (val-fn v)])))))
@@ -365,6 +366,48 @@
                              (take 1 right))
                            hdr2
                            (rest right)])))))
+
+(defn find-key-index
+  ([hdr k] (find-key-index hdr k nil))
+  ([hdr k opts]
+   (let [format-fn (gen-format-fn opts)
+         find-k (format-fn k)]
+     (->> hdr
+          (keep-indexed (fn [idx [k _]]
+                          (when (= find-k (format-fn k))
+                            [idx k])))
+          first))))
+
+(defn assoc-header
+  "修改http headere的值
+  `k` 要修改的header key,如果找不到,则在header最后添加k v
+
+  可选选项:
+  :ignore-case 比较key忽略大小写,默认为true
+  :ignore-space 比较key忽略首尾空格,默认为true
+  :keep-old-key 是否使用原先的key,默认为true,
+                如果为flase，则使用`k`代替原先的key
+                如果找不到key，总是使用给定的`k`
+  "
+  ([hdr k v] (assoc-header hdr k v nil))
+  ([hdr k v {:keys [keep-old-key]
+             :or {keep-old-key true}
+             :as opts}]
+   (let [[idx old-k] (or (find-key-index hdr k opts)
+                         [(count hdr) k])]
+     (assoc hdr idx [(if keep-old-key
+                       old-k
+                       k)
+                     v]))))
+
+(defn ->bytes
+  [data]
+  (cond
+    (bytes? data) data
+    (string? data) (.getBytes data)
+    :else (throw (ex-info (format "unsupport ->bytes format: %s." (type data))
+                          {:data data}))))
+
 (defn- ->http-raw
   [msg]
   (cond
@@ -386,7 +429,8 @@
      (let [[headers body] (-> (->http-raw req)
                               (str/split #"\r?\n\r?\n" 2))
            [start-line & headers] (str/split headers #"\r?\n")
-           [method uri http-ver] (str/split start-line #"\s")
+           [method uri http-ver] (-> (str/trim start-line)
+                                     (str/split #"\s+"))
            headers (parse-headers headers opts)]
        {:method (csk/->kebab-case-keyword method)
         :url uri
@@ -411,7 +455,8 @@
      (let [[headers body] (-> (->http-raw resp)
                               (str/split #"\r?\n\r?\n" 2))
            [start-line & headers] (str/split headers #"\r?\n")
-           [http-ver status-code] (str/split start-line #"\s")
+           [http-ver status-code] (-> (str/trim start-line)
+                                      (str/split #"\s+"))
            headers (parse-headers headers opts)]
        {:status (try-parse-int status-code)
         :version (-> (str/split http-ver #"/")
@@ -419,20 +464,25 @@
         :headers headers
         :body body}))))
 
-(defn build-headers
+(defn space-leader
+  "添加前导空格"
+  [s]
+  (str " " s))
+
+(defn build-headers-raw
   "构造http headers
 
   可选参数:
   :key-fn http header key转换函数，默认转换为HttpHeaderCase格式
-  :val-fn http header value转换函数，默认为identity "
-  ([headers] (build-headers headers nil))
+  :val-fn http header value转换函数，默认为`space-leader` "
+  ([headers] (build-headers-raw headers nil))
   ([headers {:keys [key-fn val-fn]
              :or {key-fn csk/->HTTP-Header-Case-String
-                  val-fn identity}}]
+                  val-fn space-leader}}]
    (->> headers
         (map (fn [[k v]]
                (str (key-fn k)
-                    ": "
+                    ":" ;; 这里分隔符后面的空格作为value的一部分进行处理
                     (val-fn v))))
         (str/join "\r\n"))))
 
@@ -440,42 +490,32 @@
   "构造http原始请求字符串
 
 
+  `opts`参数
   :fix-content-length 修正Content-Length的值，默认为true
   :key-fn http header key转换函数，默认转换为HttpHeaderCase格式
   :val-fn http header value转换函数，默认为identity "
-  [{:keys [method
-           url
-           version
-           body
-           headers
-           fix-content-length]
-    :or {method :get
-         version "1.1"
-         fix-content-length true}
-    :as opts}]
-  (let [headers (cond-> headers
-                  (and (= :get method)
-                       (get-headers headers "transfer-encoding")
-                       fix-content-length) (insert-headers
-                                            [["Content-Length" (count body)]]))]
+  ([data] (build-request-raw data nil))
+  ([{:keys [method
+            url
+            version
+            body
+            headers]
+     :or {method :get
+          url "/"
+          version "1.1"}}
+    {:keys [fix-content-length]
+     :or {fix-content-length true}
+     :as opts}]
+   (let [headers (cond-> headers
+                   (and fix-content-length
+                        (->> (get-headers headers "transfer-encoding")
+                             first
+                             (not= "chunked")))
+                   (insert-headers [["Content-Length" (count body)]]))]
 
-    (str (-> (name method)
-             str/upper-case) " " url " HTTP/" version "\r\n"
-         (build-headers headers opts)
-         "\r\n\r\n"
-         body)))
+     (str (-> (name method)
+              str/upper-case) " " url " HTTP/" version "\r\n"
+          (build-headers-raw headers opts)
+          "\r\n\r\n"
+          body))))
 
-(comment
-  (assert
-   (= "a\r\nb\r\ntet: cc"
-      (build-headers ["a" "b" ["tet" "cc"]])))
-
-  (build-request {:url "http://www.baidu.com/test?aa=5"
-                  :headers {"Cookie" "test=3"
-                            "User-Agent" "googlebot"
-                            :go-go "hsh"}
-                  :method :post
-                  :body "hahah"
-                  })
-
-  )
