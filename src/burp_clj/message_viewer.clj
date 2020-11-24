@@ -178,18 +178,18 @@
                     )))
     (gui/listen filter-cb :selection
                 (fn [e]
-                  (log/info "change model:" (gui/selection e))
+                  ;; (log/info "change model:" (gui/selection e))
                   (->> (make-http-message-model {:filter-pred (gui/selection e)
                                                  :datas @datas
                                                  :columns columns})
                        (gui/config! tbl :model))))
     (bind/bind
      datas
-     (bind/transform #(fn [new-datas]
-                        (log/info "change model:" (gui/selection filter-cb))
-                        (make-http-message-model {:filter-pred (gui/selection filter-cb)
-                                                  :datas new-datas
-                                                  :columns columns})))
+     (bind/transform (fn [new-datas]
+                       ;; (log/info "change model:" (gui/selection filter-cb))
+                       (make-http-message-model {:filter-pred (gui/selection filter-cb)
+                                                 :datas new-datas
+                                                 :columns columns})))
      (bind/property tbl :model))
     (gui/top-bottom-split (mig-panel
                            :items [["Filter:"]

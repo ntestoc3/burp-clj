@@ -195,17 +195,49 @@
    :body-offset (parse-body-offset resp)
    :cookies (parse-resp-cookies resp)})
 
+(defn build-http-service
+  ([host port use-https-or-protocol]
+   (-> (get-helper)
+       (.buildHttpService host port use-https-or-protocol))))
+
+(defn ->http-service
+  [service]
+  (cond
+    (instance? IHttpService service)
+    service
+
+    (map? service)
+    (build-http-service (:host service)
+                        (:port service)
+                        (:protocol service))
+
+    :else
+    (throw (ex-info "unsupport http service type." {:service service}))))
+
+(defn ->http-service-info
+  [service]
+  (cond
+    (instance? IHttpService service)
+    (parse-http-service service)
+
+    (map? service)
+    service
+
+    :else
+    (throw (ex-info "unsupport http service type." {:service service}))))
+
 (defn get-full-host
   [http-service]
-  (str (:protocol http-service)
-       "://"
-       (:host http-service)
-       (when-not (or
-                  (and (= (:protocol http-service) "http")
-                       (= (:port http-service) 80))
-                  (and (= (:protocol http-service) "https")
-                       (= (:port http-service) 443)))
-         (str ":" (:port http-service)))))
+  (let [info (->http-service-info http-service)]
+    (str (:protocol info)
+         "://"
+         (:host info)
+         (when-not (or
+                    (and (= (:protocol info) "http")
+                         (= (:port info) 80))
+                    (and (= (:protocol info) "https")
+                         (= (:port info) 443)))
+           (str ":" (:port info))))))
 
 (defn parse-http-req-resp
   "解析http req resp消息，
@@ -293,11 +325,6 @@
   (-> (get-helper)
       (.buildHttpMessage headers body)))
 
-(defn build-http-service
-  ([host port use-https-or-protocol]
-   (-> (get-helper)
-       (.buildHttpService host port use-https-or-protocol))))
-
 (defn make-message-editor-controller
   [service req resp]
   (reify IMessageEditorController
@@ -353,41 +380,15 @@
         (when-let [msg (get-message this)]
           (:response/raw msg))))))
 
-(defn ->http-service
-  [service]
-  (cond
-    (instance? IHttpService service)
-    service
-
-    (map? service)
-    (build-http-service (:host service)
-                        (:port service)
-                        (:protocol service))
-
-    :else
-    (throw (ex-info "unsupport http service type." {:service service}))))
-
 (defn send-http-raw
   "发送http请求，返回 IHttpRequestResponse
 
   `service` IHttpService或者{:host host, :port port, :protocol \"http\"}
   `http-raw` 要发送的http原始消息
   "
-  [service http-raw]
+  [http-raw service]
   (-> (->http-service service)
       (extender/make-http-req (utils/->bytes http-raw))))
-
-(defn ->http-service-info
-  [service]
-  (cond
-    (instance? IHttpService service)
-    (parse-http-service service)
-
-    (map? service)
-    service
-
-    :else
-    (throw (ex-info "unsupport http service type." {:service service}))))
 
 (defn send-http-raw2
   "发送http请求，返回response bytes
@@ -395,7 +396,7 @@
   `service` IHttpService或者{:host host, :port port, :protocol \"http\"}
   `http-raw` 要发送的http原始消息
   "
-  [service http-raw]
+  [http-raw service]
   (let [{:keys [host port protocol]} (->http-service-info service)]
     (extender/make-http-req host
                             port
