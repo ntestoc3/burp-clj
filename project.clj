@@ -1,5 +1,5 @@
 (def feature-version "0.4")
-(def build-version "4")
+(def build-version "5")
 (def release-version (str feature-version "." build-version))
 (def project-name "burp-clj")
 
@@ -21,6 +21,8 @@
                  [me.raynes/fs "1.4.6"]         ;; fs utils
                  [com.taoensso/timbre "4.10.0"] ;; logger
                  [instaparse "1.4.10"]
+                 [com.climate/claypoole "1.1.4"] ;; thread pool
+                 [diehard "0.10.2"] ;; retry limit
                  ]
   :java-source-paths ["java-src"]
   :source-paths ["src"]
