@@ -419,8 +419,12 @@
         :headers headers
         :body body}))))
 
-(defn- build-headers
-  "构造http headers"
+(defn build-headers
+  "构造http headers
+
+  可选参数:
+  :key-fn http header key转换函数，默认转换为HttpHeaderCase格式
+  :val-fn http header value转换函数，默认为identity "
   ([headers] (build-headers headers nil))
   ([headers {:keys [key-fn val-fn]
              :or {key-fn csk/->HTTP-Header-Case-String
@@ -433,11 +437,11 @@
         (str/join "\r\n"))))
 
 (defn build-request-raw
-  "构造http请求原始字符串
+  "构造http原始请求字符串
 
 
   :fix-content-length 修正Content-Length的值，默认为true
-  :key-fn http header key转换函数，默认为转换HttpHeaderCase格式
+  :key-fn http header key转换函数，默认转换为HttpHeaderCase格式
   :val-fn http header value转换函数，默认为identity "
   [{:keys [method
            url
