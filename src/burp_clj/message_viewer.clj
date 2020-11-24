@@ -153,10 +153,11 @@
                                                               (gui/alert (ex-message e)))
                                                              false
                                                              )))
-                                   :auto-completion {:provider {:ac-words auto-completion-words}
+                                   :auto-completion {:provider {:ac-words auto-completion-words
+                                                                :activation-rules "."}
                                                      :parameter-assistance? false
                                                      :auto-activation? true
-                                                     :trigger-key "control PERIOD"
+                                                     :trigger-key "TAB"
                                                      :delay 10}
                                    :editor-options {:syntax :c}
                                    })
