@@ -382,6 +382,31 @@
   (-> (->http-service service)
       (extender/make-http-req (utils/->bytes http-raw))))
 
+(defn ->http-service-info
+  [service]
+  (cond
+    (instance? IHttpService service)
+    (parse-http-service service)
+
+    (map? service)
+    service
+
+    :else
+    (throw (ex-info "unsupport http service type." {:service service}))))
+
+(defn send-http-raw2
+  "发送http请求，返回response bytes
+
+  `service` IHttpService或者{:host host, :port port, :protocol \"http\"}
+  `http-raw` 要发送的http原始消息
+  "
+  [service http-raw]
+  (let [{:keys [host port protocol]} (->http-service-info service)]
+    (extender/make-http-req host
+                            port
+                            (= "https" protocol)
+                            (utils/->bytes http-raw))))
+
 (defn ->msg-controller
   [^IHttpRequestResponse http-req-resp]
   (make-message-editor-controller (.getHttpService http-req-resp)

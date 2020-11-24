@@ -274,6 +274,18 @@
                     (assoc acc new-kw v))))
               {} m)))
 
+(defn assoc-at [data i item]
+  (if (associative? data)
+    (assoc data i item)
+    (if-not (neg? i)
+      (letfn [(assoc-lazy [i data]
+                (cond (zero? i) (cons item (rest data))
+                      (empty? data) data
+                      :else (lazy-seq (cons (first data)
+                                            (assoc-lazy (dec i) (rest data))))))]
+        (assoc-lazy i data))
+      data)))
+
 ;;;;;;;;;;; converter helper
 (defn try-parse-int
   ([s] (try-parse-int s 0))
@@ -395,10 +407,10 @@
              :as opts}]
    (let [[idx old-k] (or (find-key-index hdr k opts)
                          [(count hdr) k])]
-     (assoc hdr idx [(if keep-old-key
-                       old-k
-                       k)
-                     v]))))
+     (assoc-at hdr idx [(if keep-old-key
+                          old-k
+                          k)
+                        v]))))
 
 (defn ->bytes
   [data]
@@ -486,6 +498,17 @@
                     (val-fn v))))
         (str/join "\r\n"))))
 
+(defn can-have-content-length?
+  [headers body-len]
+  (if (first (get-headers headers :content-length))
+    true
+    ;; 如果没有content-length头，则要body大于0
+    (and (pos? body-len)
+         ;; 并且transfer-encoding不能为chunked
+         (->> (get-headers headers :transfer-encoding)
+              first
+              (not= "chunked")))))
+
 (defn build-request-raw
   "构造http原始请求字符串
 
@@ -508,14 +531,10 @@
      :as opts}]
    (let [headers (cond-> headers
                    (and fix-content-length
-                        (->> (get-headers headers "transfer-encoding")
-                             first
-                             (not= "chunked")))
-                   (insert-headers [["Content-Length" (count body)]]))]
-
+                        (can-have-content-length? headers (count body)))
+                   (assoc-header "Content-Length" (count body) {:keep-old-key false}))]
      (str (-> (name method)
               str/upper-case) " " url " HTTP/" version "\r\n"
           (build-headers-raw headers opts)
           "\r\n\r\n"
           body))))
-
