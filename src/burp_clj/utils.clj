@@ -320,7 +320,7 @@
   `k` 要查找的key
 
   可选选项
-  :key-fn key转换函数，默认转换为clojure keyworde格式
+  :key-fn key转换函数，默认转换为clojure keyword格式
   :val-fn value转换函数，默认为`clojure.string/trim`
   "
   ([hls] (parse-headers hls nil))
@@ -462,7 +462,7 @@
   `opts`参数:
 
   解析header相关
-  :key-fn http header key转换函数，默认为identity
+  :key-fn http header key转换函数，默认转换为clojure keyword格式
   :val-fn value转换函数，默认为`clojure.string/trim`"
   ([req] (parse-request req nil))
   ([req opts]
@@ -487,7 +487,7 @@
    `opts`参数:
 
   解析header相关
-  :key-fn key转换函数，默认为identity
+  :key-fn key转换函数，默认转换为clojure keyword格式
   :val-fn value转换函数，默认为`clojure.string/trim`
   "
   ([resp] (parse-response resp nil))
@@ -567,3 +567,12 @@
           (build-headers-raw headers opts)
           "\r\n\r\n"
           body))))
+
+;;;;; time helper
+(defmacro time-execution
+  [& body]
+  `(let [s# (new java.io.StringWriter)]
+     (binding [*out* s#]
+       (hash-map :return (time ~@body)
+                 :time   (-> (.replaceAll (str s#) "[^0-9\\.]" "")
+                             (Double/parseDouble))))))

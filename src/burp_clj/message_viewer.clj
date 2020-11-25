@@ -20,7 +20,7 @@
   (:import javax.swing.ComboBoxEditor
            java.awt.event.KeyEvent
            java.awt.Color
-           ))
+           javax.swing.table.DefaultTableCellRenderer))
 
 
 (defn get-filter-pred [txt]
@@ -147,6 +147,23 @@
             (set (map key-fn (vec xs))))]
     (filter #(ks (key-fn %1)) ys)))
 
+(defn cell-render []
+  (proxy [DefaultTableCellRenderer] []
+    (getTableCellRendererComponent
+      [tbl
+       ^java.lang.Object value
+       ^java.lang.Boolean selected
+       ^java.lang.Boolean has-focus
+       ^java.lang.Integer row
+       ^java.lang.Integer column]
+      (let [c (proxy-super getTableCellRendererComponent tbl value selected has-focus row column)
+            v (table/value-at tbl row)]
+        (when-some [bg (:background v)]
+          (.setBackground c (color/color bg)))
+        (when-some [fg (:foreground v)]
+          (.setForeground c (color/color fg)))
+        c))))
+
 (defn http-message-viewer
   "创建http消息查看器
   datas 支持添加和清空，不支持删除; 添加时会忽略重复的key
@@ -180,6 +197,8 @@
                                                            :datas @datas
                                                            :columns columns}))
         req-resp-controller (helper/make-request-response-controller)]
+    (.setDefaultRenderer tbl java.lang.Object (cell-render))
+    (.setDefaultRenderer tbl java.lang.Number (cell-render))
     (helper/init req-resp-controller false)
     (gui/listen tbl :selection
                 (fn [e]
@@ -206,7 +225,8 @@
                                               (make-filter-data-fn))]
                             (doseq [v (filter filter-fn vs)]
                               (log/info "http viewer add new row:" (key-fn v))
-                              (table/add! tbl v)))))
+                              (gui/invoke-later
+                               (table/add! tbl v))))))
                       (catch Exception e
                         (log/error "error change http viewer data:" e)))))
     (gui/top-bottom-split (mig-panel
@@ -230,7 +250,9 @@
 
   (def datas (map-indexed (fn [idx v]
                             (let [info (helper/parse-http-req-resp v)]
-                              (assoc info :index idx))) hs))
+                              (assoc info :index idx
+                                     :foreground :green
+                                     :background :red))) hs))
 
   (def cols-info [{:key :index :text "#" :class java.lang.Long}
                   {:key :host :text "Host" :class java.lang.String}

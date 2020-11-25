@@ -3,6 +3,7 @@
             [clojure.java.io :refer [as-url]]
             [burp-clj.extender :as extender]
             [taoensso.timbre :as log]
+            [camel-snake-kebab.core :as csk]
             [burp-clj.state :as state]
             [burp-clj.utils :refer [def-enum-fileds-map]]
             [burp-clj.utils :as utils])
@@ -227,17 +228,36 @@
     (throw (ex-info "unsupport http service type." {:service service}))))
 
 (defn get-full-host
-  [http-service]
-  (let [info (->http-service-info http-service)]
-    (str (:protocol info)
+  [service]
+  (cond
+    (instance? IHttpService service)
+    (str service)
+
+    (map? service)
+    (str (:protocol service)
          "://"
-         (:host info)
+         (:host service)
          (when-not (or
-                    (and (= (:protocol info) "http")
-                         (= (:port info) 80))
-                    (and (= (:protocol info) "https")
-                         (= (:port info) 443)))
-           (str ":" (:port info))))))
+                    (and (= (:protocol service) "http")
+                         (= (:port service) 80))
+                    (and (= (:protocol service) "https")
+                         (= (:port service) 443)))
+           (str ":" (:port service))))
+
+    :else
+    (throw (ex-info "unsupport http service type." {:service service}))))
+
+(defn flatten-format-req-resp
+  "格式化req或resp
+  `req-or-resp` 请求或响应的结果
+  `format-type`只能是:request或:response, 默认为:request"
+  ([req-or-resp] (flatten-format-req-resp req-or-resp :request))
+  ([req-or-resp format-type]
+   (-> (if (= :request format-type)
+         (utils/parse-request req-or-resp)
+         (utils/parse-response req-or-resp))
+       (update :headers #(into {} %1))
+       (utils/map->nsmap format-type true))))
 
 (defn parse-http-req-resp
   "解析http req resp消息，
@@ -253,12 +273,8 @@
       :response/raw (.getResponse req-resp)
       :full-host (get-full-host service)}
      service
-     (-> (utils/parse-request req)
-         (update :headers #(into {} %1))
-         (utils/map->nsmap :request true))
-     (-> (utils/parse-response resp)
-         (update :headers #(into {} %1))
-         (utils/map->nsmap :response true)))))
+     (flatten-format-req-resp req :request)
+     (flatten-format-req-resp resp :response))))
 
 (defn analyze-request
   "分析请求"
@@ -355,10 +371,12 @@
       (set-message [this message]
         (if (= (get-message this) message)
           (log/info :request-response-controller :set-message "same message.")
-          (let [req (or (:request/raw message)
-                        (byte-array 0))
-                resp (or (:response/raw message)
-                         (byte-array 0))]
+          (let [req (-> (or (:request/raw message)
+                            (byte-array 0))
+                        utils/->bytes)
+                resp (-> (or (:response/raw message)
+                             (byte-array 0))
+                         utils/->bytes)]
             (-> (get-request-editor this)
                 (.setMessage req true))
             (-> (get-response-editor this)
