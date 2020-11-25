@@ -245,6 +245,11 @@
   (-> (get)
       (.customizeUiComponent comp)))
 
+(defn create-burp-collaborator-client
+  []
+  (-> (get)
+      (.createBurpCollaboratorClientContext)))
+
 (defn make-tab
   [caption ui-comp]
   (reify ITab
