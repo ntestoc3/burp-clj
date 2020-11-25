@@ -164,12 +164,15 @@
                          .getImage)))
 
 (defn show-ui
-  ([widget]
+  ([widget] (show-ui widget nil))
+  ([widget opts]
    ;; (gui/native!)
-   (let [f (gui/frame :title "test ui"
-                      :on-close :dispose
-                      :icon @burp-img
-                      :content widget)]
+   (let [f (apply gui/frame (-> {:title "test ui"
+                                 :on-close :dispose
+                                 :icon @burp-img
+                                 :content widget}
+                                (merge opts)
+                                (->> (apply concat))))]
      (-> f gui/pack! gui/show!)
      f)))
 
