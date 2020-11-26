@@ -12,7 +12,8 @@
             [me.raynes.fs :as fs]
             [clojure.java.io :as io])
   (:import [clojure.lang DynamicClassLoader RT]
-           burp.IHttpRequestResponse)
+           burp.IHttpRequestResponse
+           [java.net URLEncoder URLDecoder])
   )
 
 ;;;;;;;;;;;;;;;; dep helper
@@ -576,3 +577,19 @@
        (hash-map :return (time ~@body)
                  :time   (-> (.replaceAll (str s#) "[^0-9\\.]" "")
                              (Double/parseDouble))))))
+;;; url helper
+(defn encode-params [request-params]
+  (let [encode #(URLEncoder/encode (str %) "UTF-8")
+        coded (for [[n v] request-params] (str (encode (name n))
+                                               "="
+                                               (encode v)))]
+    (apply str (interpose "&" coded))))
+
+(defn decode-params [params]
+  (let [decode #(URLDecoder/decode (str %) "UTF-8")]
+    (->> (str/split params #"&")
+         (map #(let [[k v] (-> %1
+                               (str/split #"=" 2))]
+                 [(csk/->kebab-case-keyword (decode k))
+                  (decode v)]))
+         (into {}))))

@@ -355,6 +355,11 @@
   (set-message [this message])
   (get-message [this]))
 
+(defn- get-message-bytes
+  [msg]
+  (-> (or msg (byte-array 0))
+      utils/->bytes))
+
 (defn make-request-response-controller
   []
   (let [data (atom nil)]
@@ -371,12 +376,10 @@
       (set-message [this message]
         (if (= (get-message this) message)
           (log/info :request-response-controller :set-message "same message.")
-          (let [req (-> (or (:request/raw message)
-                            (byte-array 0))
-                        utils/->bytes)
-                resp (-> (or (:response/raw message)
-                             (byte-array 0))
-                         utils/->bytes)]
+          (let [req (-> (:request/raw message)
+                        get-message-bytes)
+                resp (-> (:response/raw message)
+                         get-message-bytes)]
             (-> (get-request-editor this)
                 (.setMessage req true))
             (-> (get-response-editor this)
@@ -393,10 +396,12 @@
           (build-http-service (:host msg) (:port msg) (:protocol msg))))
       (getRequest [this]
         (when-let [msg (get-message this)]
-          (:request/raw msg)))
+          (-> (:request/raw msg)
+              get-message-bytes)))
       (getResponse [this]
         (when-let [msg (get-message this)]
-          (:response/raw msg))))))
+          (-> (:response/raw msg)
+              get-message-bytes))))))
 
 (defn send-http-raw
   "发送http请求，返回 IHttpRequestResponse
