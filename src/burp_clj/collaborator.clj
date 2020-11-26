@@ -19,12 +19,14 @@
   [bc]
   (.getCollaboratorServerLocation bc))
 
-(defn gen-cmd
+(defn- gen-cmd
   [url params]
-  (str url "?"
-       (utils/encode-params params)))
+  (let [param-line (utils/encode-params params)]
+    (if (empty? param-line)
+      url
+      (str url "?" param-line))))
 
-(defn get-cmd
+(defn- get-cmd
   [url]
   (some-> (str/split url #"\?")
           second
@@ -32,10 +34,12 @@
 
 (defn gen-payload
   "生成Burp Collaborator payloads
-  `include-location` 是否带burp collaborator server的网络位置，默认为false"
-  ([bc] (gen-payload bc false))
-  ([bc include-location]
-   (.generatePayload bc include-location)))
+  `params`　生成带域名和params参数的payloads，如果不指定params，则只生成payload id"
+  ([bc]
+   (.generatePayload bc false))
+  ([bc params]
+   (-> (.generatePayload bc true)
+       (gen-cmd params))))
 
 (defn- bc-interaction->map
   [ia]
@@ -50,6 +54,13 @@
        (into {})))
 
 (defn get-collaborator-interactions
+  "获取collaborator client的interactions
+
+  返回的消息是未解码的原始interactions
+
+  注意:
+  如果客户端`bc`已经创建了ui,不建议自己调用此函数，可以通过ui的callback函数获取解码过的interaction
+  "
   ([bc]
    (->> (.fetchAllCollaboratorInteractions bc)
         (map bc-interaction->map)))
@@ -105,7 +116,16 @@
                                {:key :params/comment :text "Comment"}]
                      :rows datas))
 
+(extender/defsetting :collaborator/poll-wait-time 5 int?)
+
 (defn make-ui
+  "创建collaborator界面,
+  :collaborator 通过create创建的collaborator client对象
+  :callback 收到新消息时的回调函数，接受一个参数，为解析后的interaction对象,如果是http类型的interaction,可以通过:params/[key name]来获得请求的http param值,例如(fn [data] (print (:params/comment data)))回调函数会输出comment参数的值
+
+  注意:
+  如果用同一个client创建多个界面，或者自己调用`get-collaborator-interactions`，会造成显示的消息不全
+  "
   [{:keys [collaborator callback width height]
     :or {width 1000
          height 600}}]
@@ -113,6 +133,7 @@
                           :selection-mode :single
                           :model (make-collaborator-model []))
         poll-interactions (fn []
+                            (log/info "poll collaborator interactions...")
                             (try
                               (when-some [ias (get-collaborator-interactions collaborator)]
                                 (doseq [ia (map parse-collaborator-msg ias)]
@@ -123,10 +144,10 @@
                               (catch Exception e
                                 (log/error "get collaborator interactions." e))))
         update-interaction-fn (fn []
-                                (log/info "update interaction...2")
                                 (if (.isShowing tbl)
                                   (do (poll-interactions)
-                                      (Thread/sleep 5000)
+                                      (Thread/sleep (* 1000
+                                                       (get-poll-wait-time)))
                                       (recur))
                                   (log/info "collaborator table hidden, stop timer.")))
         status-line (gui/label)
@@ -152,8 +173,7 @@
                 (fn [e]
                   (when-not (.getValueIsAdjusting e)
                     (let [v (some->> (gui/selection tbl)
-                                     (table/value-at tbl))
-                           ]
+                                     (table/value-at tbl))]
                       (gui/config! status-line :text (:summary v))
                       (case (:type v)
                         "DNS" (do
@@ -165,7 +185,25 @@
                         (gui/show-card! msg-viewer :unknown))))))
     (future (Thread/sleep 5000)
             (update-interaction-fn))
-    (gui/top-bottom-split (gui/scrollable tbl)
+    (gui/top-bottom-split (mig-panel
+                           :items [["Poll every"]
+
+                                   [(gui/text :text (str (get-poll-wait-time))
+                                              :listen [:document
+                                                       #(-> (gui/text %)
+                                                            (utils/try-parse-int (get-poll-wait-time))
+                                                            set-poll-wait-time!)])
+                                    "wmin 50"]
+
+                                   ["seconds."]
+
+                                   [(gui/button :text "Poll now"
+                                                :listen [:action (fn [e]
+                                                                   (future (poll-interactions)))])
+                                    "wrap, span, gap 10px"]
+
+                                   [(gui/scrollable tbl)
+                                    "wrap, span, grow, width 100%, height 100%"]])
                           (mig-panel
                            :items [[status-line
                                     "wrap, grow"]
