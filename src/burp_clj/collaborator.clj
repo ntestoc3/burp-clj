@@ -6,6 +6,7 @@
             [seesaw.swingx :as guix]
             [seesaw.mig :refer [mig-panel]]
             [seesaw.table :as table]
+            [seesaw.clipboard :as clip]
             [clojure.string :as str]
             [taoensso.timbre :as log]
             [seesaw.core :as gui]))
@@ -143,13 +144,14 @@
                                     (callback ia))))
                               (catch Exception e
                                 (log/error "get collaborator interactions." e))))
+        window-showing (atom true)
         update-interaction-fn (fn []
-                                (if (.isShowing tbl)
+                                (if @window-showing
                                   (do (poll-interactions)
                                       (Thread/sleep (* 1000
                                                        (get-poll-wait-time)))
                                       (recur))
-                                  (log/info "collaborator table hidden, stop timer.")))
+                                  (log/info "collaborator window closed, stop timer.")))
         status-line (gui/label)
         http-message-controller (doto (helper/make-request-response-controller)
                                    (helper/init false))
@@ -183,16 +185,16 @@
                                  (helper/set-message http-message-controller v)
                                  (gui/show-card! msg-viewer :http))
                         (gui/show-card! msg-viewer :unknown))))))
-    (.addHierarchyListener tbl
-                           (reify java.awt.event.HierarchyListener
-                             (hierarchyChanged [this e]
-                               (when (and (not= 0 (bit-and
-                                                   ^Integer (.getChangeFlags e)
-                                                   ^Integer java.awt.event.HierarchyEvent/SHOWING_CHANGED))
-                                          (.isShowing tbl))
-                                 (.removeHierarchyListener tbl this)
-                                 (log/info "start collaborator timer.")
-                                 (future (update-interaction-fn))))))
+    (future
+      (loop []
+        (if-some [w (gui/to-root tbl)]
+          (do
+            (log/info "start collaborator timer.")
+            (gui/listen w :window-closing (fn [e]
+                                            (reset! window-showing false)))
+            (update-interaction-fn))
+          (do (Thread/sleep 2000)
+              (recur)))))
     (gui/top-bottom-split (mig-panel
                            :items [["Poll every"]
 
@@ -208,7 +210,13 @@
                                    [(gui/button :text "Poll now"
                                                 :listen [:action (fn [e]
                                                                    (future (poll-interactions)))])
-                                    "wrap, span, gap 10px"]
+                                    "gap 20px"]
+
+                                   [(gui/button :text "Generate payload"
+                                                :listen [:action (fn [e]
+                                                                   (-> (gen-payload collaborator nil)
+                                                                       (clip/contents!)))])
+                                    "wrap, span, gap 20px"]
 
                                    [(gui/scrollable tbl)
                                     "wrap, span, grow, width 100%, height 100%"]])
