@@ -183,8 +183,16 @@
                                  (helper/set-message http-message-controller v)
                                  (gui/show-card! msg-viewer :http))
                         (gui/show-card! msg-viewer :unknown))))))
-    (future (Thread/sleep 5000)
-            (update-interaction-fn))
+    (.addHierarchyListener tbl
+                           (reify java.awt.event.HierarchyListener
+                             (hierarchyChanged [this e]
+                               (when (and (not= 0 (bit-and
+                                                   ^Integer (.getChangeFlags e)
+                                                   ^Integer java.awt.event.HierarchyEvent/SHOWING_CHANGED))
+                                          (.isShowing tbl))
+                                 (.removeHierarchyListener tbl this)
+                                 (log/info "start collaborator timer.")
+                                 (future (update-interaction-fn))))))
     (gui/top-bottom-split (mig-panel
                            :items [["Poll every"]
 
