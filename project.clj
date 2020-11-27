@@ -23,6 +23,7 @@
                  [instaparse "1.4.10"]
                  [com.climate/claypoole "1.1.4"] ;; thread pool
                  [diehard "0.10.2"] ;; retry limit
+                 [com.rpl/specter "1.1.3"] ;; data manipulation
                  ]
   :java-source-paths ["java-src"]
   :source-paths ["src"]
