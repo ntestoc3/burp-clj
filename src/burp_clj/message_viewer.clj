@@ -21,7 +21,7 @@
            java.awt.event.KeyEvent
            java.awt.Color
            org.jdesktop.swingx.JXTable
-           javax.swing.table.TableCellRenderer
+           [javax.swing.table TableRowSorter TableCellRenderer]
            javax.swing.table.DefaultTableCellRenderer))
 
 
@@ -43,10 +43,9 @@
         (pred-fn data)))))
 
 (defn make-http-message-model
-  [{:keys [filter-pred datas columns]}]
-  (let [filter-fn (make-filter-data-fn filter-pred)]
-    (table/table-model :columns columns
-                       :rows (filter filter-fn datas))))
+  [{:keys [datas columns]}]
+  (table/table-model :columns columns
+                     :rows datas))
 
 (defn make-syntax-combox-editor
   "创建combobox使用的syntax editor"
@@ -141,14 +140,6 @@
     (.setEditor cb combox-editor)
     cb))
 
-(defn- diff-datas
-  "根据`key-fn`获取ys比xs多的数据"
-  [xs ys key-fn]
-  (let [ks (set/difference
-            (set (map key-fn (vec ys)))
-            (set (map key-fn (vec xs))))]
-    (filter #(ks (key-fn %1)) ys)))
-
 (defn cell-render []
   (proxy [DefaultTableCellRenderer] []
     (getTableCellRendererComponent
@@ -169,9 +160,21 @@
                                (color/default-color "Label.foreground")))
         (proxy-super getTableCellRendererComponent tbl value selected has-focus row column)))))
 
+(defn row-filter
+  [filter-pred]
+  (proxy [javax.swing.RowFilter] []
+    (include [entry]
+      (try (let [v (table/value-at (.getModel entry)
+                                   (.getIdentifier entry))
+                 filter-fn (make-filter-data-fn filter-pred)]
+             (boolean (filter-fn v)))
+           (catch Exception e
+             (log/error "row filter:" e)
+             false)))))
+
 (defn http-message-viewer
   "创建http消息查看器
-  datas 支持添加和清空，不支持删除; 添加时会忽略重复的key
+  datas 初始创建时要显示的数据，之后可以通过(seesaw.core/select root [:#http-message-table])获取table控件，进行更新操作
   :key-fn 获取datas数据唯一键的函数"
   [{:keys [columns datas setting-key ac-words width height key-fn]
     :or {width 1000
@@ -198,10 +201,8 @@
                                    :editor-options {:syntax :c}})
         tbl (guix/table-x :id :http-message-table
                           :selection-mode :single
-                          :model (make-http-message-model {:filter-pred nil
-                                                           :datas @datas
+                          :model (make-http-message-model {:datas datas
                                                            :columns columns}))
-
         req-resp-controller (helper/make-request-response-controller)]
     ;; HACK 使JXTable的cellrenderer生效
     (.putClientProperty tbl JXTable/USE_DTCR_COLORMEMORY_HACK false)
@@ -220,25 +221,10 @@
     (gui/listen filter-cb :selection
                 (fn [e]
                   ;; (log/info "change model:" (gui/selection e))
-                  (->> (make-http-message-model {:filter-pred (gui/selection e)
-                                                 :datas @datas
-                                                 :columns columns})
-                       (gui/config! tbl :model))))
-    (add-watch datas :http-message-viewer
-               (fn [_ _ old-v new-v]
-                 (log/info "watch run.." )
-                 (try (if (empty? new-v)
-                        (table/clear! tbl)
-                        (when-some [vs (diff-datas old-v new-v key-fn)]
-                          (let [filter-fn (-> (gui/text filter-cb)
-                                              (doto (print " [filter]"))
-                                              (make-filter-data-fn))]
-                            (doseq [v (filter filter-fn vs)]
-                              (log/info "http viewer add new row:" (key-fn v))
-                              (gui/invoke-later
-                               (table/add! tbl v))))))
-                      (catch Exception e
-                        (log/error "error change http viewer data:" e)))))
+                  (let [sorter (.getRowSorter tbl)]
+                    (->> (gui/selection e)
+                         (row-filter)
+                         (.setRowFilter sorter)))))
     (gui/top-bottom-split (mig-panel
                            :items [["Filter:"]
                                    [filter-cb
@@ -279,10 +265,8 @@
                   {:key :port :text "PORT" :class java.lang.Long}
                   {:key :comment :text "Comment" :class java.lang.String}])
 
-  (def ds (atom datas))
-
   (def ui (http-message-viewer
-           {:datas ds
+           {:datas datas
             :columns cols-info
             :setting-key :add-csrf/macro
             :ac-words (->> (first datas)
@@ -322,4 +306,6 @@
   (utils/show-ui acb)
 
   )
+
+
 
