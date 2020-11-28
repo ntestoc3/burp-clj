@@ -20,6 +20,8 @@
   (:import javax.swing.ComboBoxEditor
            java.awt.event.KeyEvent
            java.awt.Color
+           org.jdesktop.swingx.JXTable
+           javax.swing.table.TableCellRenderer
            javax.swing.table.DefaultTableCellRenderer))
 
 
@@ -160,11 +162,11 @@
         ;; table中的cellrenderer是共用的同一个对象，
         ;;   因此每次都要根据不同的值来设置，否则后面会一直使用之前设置过的color
         (.setBackground this (if-some [bg (:background v)]
-                            (color/color bg)
-                            (color/default-color "Label.background")))
+                               (color/color bg)
+                               (color/default-color "Label.background")))
         (.setForeground this (if-some [fg (:foreground v)]
-                            (color/color fg)
-                            (color/default-color "Label.foreground")))
+                               (color/color fg)
+                               (color/default-color "Label.foreground")))
         (proxy-super getTableCellRendererComponent tbl value selected has-focus row column)))))
 
 (defn http-message-viewer
@@ -194,12 +196,16 @@
                                                      :trigger-key "TAB"
                                                      :delay 10}
                                    :editor-options {:syntax :c}})
-        tbl (gui/table :id :http-message-table
-                       :selection-mode :single
-                       :model (make-http-message-model {:filter-pred nil
-                                                        :datas @datas
-                                                        :columns columns}))
+        tbl (guix/table-x :id :http-message-table
+                          :selection-mode :single
+                          :model (make-http-message-model {:filter-pred nil
+                                                           :datas @datas
+                                                           :columns columns}))
+
         req-resp-controller (helper/make-request-response-controller)]
+    ;; HACK 使JXTable的cellrenderer生效
+    (.putClientProperty tbl JXTable/USE_DTCR_COLORMEMORY_HACK false)
+
     (.setDefaultRenderer tbl java.lang.Object (cell-render))
     (.setDefaultRenderer tbl java.lang.Number (cell-render))
     (helper/init req-resp-controller false)
@@ -316,3 +322,4 @@
   (utils/show-ui acb)
 
   )
+
