@@ -215,8 +215,8 @@
                   (when-not (.getValueIsAdjusting e)
                     (let [v (some->> (gui/selection tbl)
                                      (table/value-at tbl))]
-                      (log/info :table :selection
-                                "sel:" (gui/selection tbl) "value index:" (:index v))
+                      #_(log/info :table :selection
+                                  "sel:" (gui/selection tbl) "value index:" (:index v))
                       (helper/set-message req-resp-controller v)))))
     (gui/listen filter-cb :selection
                 (fn [e]
