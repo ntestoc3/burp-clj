@@ -90,6 +90,7 @@
 
 (defn show-add-source-dlg
   [parent]
+  (utils/add-dep [])
   (when-some [source (input-dir {:title "add source info"
                                  :parent parent
                                  :text "input source target:"})]
