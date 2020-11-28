@@ -44,7 +44,7 @@
 
 (defn choose-dir-btn
   [default-dir target-path]
-  (gui/button :icon (io/resource "open_dir3.png")
+  (gui/button :icon (io/resource "open_dir.png")
               :text "Choose Folder"
               :listen [:action (fn [e]
                                  (let [root (gui/to-root e)]
