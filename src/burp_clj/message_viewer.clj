@@ -149,7 +149,8 @@
        ^java.lang.Boolean has-focus
        ^java.lang.Integer row
        ^java.lang.Integer column]
-      (let [v (table/value-at tbl row)]
+      (let [v (->> (.convertRowIndexToModel tbl row)
+                   (table/value-at tbl))]
         ;; table中的cellrenderer是共用的同一个对象，
         ;;   因此每次都要根据不同的值来设置，否则后面会一直使用之前设置过的color
         (.setBackground this (if-some [bg (:background v)]

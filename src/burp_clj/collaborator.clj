@@ -141,7 +141,9 @@
                                   (gui/invoke-later
                                    (table/add! tbl ia))
                                   (when callback
-                                    (callback ia))))
+                                    (try (callback ia)
+                                         (catch Exception e
+                                           (log/error "collaborator callback error:" e))))))
                               (catch Exception e
                                 (log/error "get collaborator interactions." e))))
         window-showing (atom true)
