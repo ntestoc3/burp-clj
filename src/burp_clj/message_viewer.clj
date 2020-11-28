@@ -156,13 +156,16 @@
        ^java.lang.Boolean has-focus
        ^java.lang.Integer row
        ^java.lang.Integer column]
-      (let [c (proxy-super getTableCellRendererComponent tbl value selected has-focus row column)
-            v (table/value-at tbl row)]
-        (when-some [bg (:background v)]
-          (.setBackground c (color/color bg)))
-        (when-some [fg (:foreground v)]
-          (.setForeground c (color/color fg)))
-        c))))
+      (let [v (table/value-at tbl row)]
+        ;; table中的cellrenderer是共用的同一个对象，
+        ;;   因此每次都要根据不同的值来设置，否则后面会一直使用之前设置过的color
+        (.setBackground this (if-some [bg (:background v)]
+                            (color/color bg)
+                            (color/default-color "Label.background")))
+        (.setForeground this (if-some [fg (:foreground v)]
+                            (color/color fg)
+                            (color/default-color "Label.foreground")))
+        (proxy-super getTableCellRendererComponent tbl value selected has-focus row column)))))
 
 (defn http-message-viewer
   "创建http消息查看器
@@ -191,11 +194,11 @@
                                                      :trigger-key "TAB"
                                                      :delay 10}
                                    :editor-options {:syntax :c}})
-        tbl (guix/table-x :id :http-message-table
-                          :selection-mode :single
-                          :model (make-http-message-model {:filter-pred nil
-                                                           :datas @datas
-                                                           :columns columns}))
+        tbl (gui/table :id :http-message-table
+                       :selection-mode :single
+                       :model (make-http-message-model {:filter-pred nil
+                                                        :datas @datas
+                                                        :columns columns}))
         req-resp-controller (helper/make-request-response-controller)]
     (.setDefaultRenderer tbl java.lang.Object (cell-render))
     (.setDefaultRenderer tbl java.lang.Number (cell-render))
@@ -205,7 +208,8 @@
                   (when-not (.getValueIsAdjusting e)
                     (let [v (some->> (gui/selection tbl)
                                      (table/value-at tbl))]
-                      (log/info :table :selection "sel:" (gui/selection tbl) "value index:" (:index v))
+                      (log/info :table :selection
+                                "sel:" (gui/selection tbl) "value index:" (:index v))
                       (helper/set-message req-resp-controller v)))))
     (gui/listen filter-cb :selection
                 (fn [e]
@@ -250,9 +254,15 @@
 
   (def datas (map-indexed (fn [idx v]
                             (let [info (helper/parse-http-req-resp v)]
-                              (assoc info :index idx
-                                     :foreground :green
-                                     :background :red))) hs))
+                              (cond-> (assoc info :index idx)
+                                (and (:response/status info)
+                                     (>= (:response/status info) 500))
+                                (assoc :background :red)
+
+                                (and (:response/status info)
+                                     (= (:response/status info) 200))
+                                (assoc :foreground :green))))
+                          hs))
 
   (def cols-info [{:key :index :text "#" :class java.lang.Long}
                   {:key :host :text "Host" :class java.lang.String}
@@ -263,16 +273,18 @@
                   {:key :port :text "PORT" :class java.lang.Long}
                   {:key :comment :text "Comment" :class java.lang.String}])
 
-  (def ds (atom (take 3 datas)))
+  (def ds (atom datas))
 
-  (utils/show-ui (http-message-viewer
-                  {:datas ds
-                   :columns cols-info
-                   :setting-key :add-csrf/macro
-                   :ac-words (->> (first datas)
-                                  keys)
-                   :key-fn :index
-                   }))
+  (def ui (http-message-viewer
+           {:datas ds
+            :columns cols-info
+            :setting-key :add-csrf/macro
+            :ac-words (->> (first datas)
+                           keys)
+            :key-fn :index
+            }))
+
+  (utils/show-ui ui)
 
   (def acb (make-ac-combox {:setting-key :csrf-filter
                             :auto-completion {:parameter-assistance? true
