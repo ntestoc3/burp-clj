@@ -5,8 +5,10 @@
             [seesaw.color :as color]
             [seesaw.icon :as icon]
             [seesaw.dnd :as dnd]
+            [seesaw.chooser :refer [choose-file]]
             [clojure.edn :as edn]
             [taoensso.timbre :as log]
+            [me.raynes.fs :as fs]
             [burp-clj.state :as state]
             [clojure.java.io :as io]
             [seesaw.mig :refer [mig-panel]]
@@ -40,8 +42,21 @@
       (gui/pack!)
       gui/show!))
 
-(defn input
-  [{:keys [parent title text default-text]
+(defn choose-dir-btn
+  [default-dir target-path]
+  (gui/button :icon (io/resource "open_dir3.png")
+              :text "Choose Folder"
+              :listen [:action (fn [e]
+                                 (let [root (gui/to-root e)]
+                                   (when-let [path (choose-file root
+                                                                :dir default-dir
+                                                                :type :open
+                                                                :selection-mode :dirs-only)]
+                                     (-> (gui/select root target-path)
+                                         (gui/text! (str path))))))]))
+
+(defn input-dir
+  [{:keys [parent title text default-path]
     :or {text "input info:"
          title "get info"}}]
   (let [dlg (gui/dialog
@@ -53,8 +68,15 @@
                        :items [[text
                                 "wrap"]
                                [(gui/text :id :info
-                                          :text default-text)
-                                "grow, wmin 300"]])
+                                          :text default-path)
+                                "grow, wmin 300"]
+                               [(choose-dir-btn
+                                 (when (and default-path
+                                            (fs/directory? default-path))
+                                   default-path
+                                   (str (fs/home)))
+                                 [:#info])
+                                "gap 5px"]])
              :option-type :ok-cancel
              :success-fn (fn [p]
                            (-> (gui/to-root p)
@@ -68,9 +90,9 @@
 
 (defn show-add-source-dlg
   [parent]
-  (let [source (input {:title "add source info"
-                       :parent parent
-                       :text "input source target:"})]
+  (when-some [source (input-dir {:title "add source info"
+                                 :parent parent
+                                 :text "input source target:"})]
     (try
       (script/add-script-source! source)
       (catch AssertionError _
