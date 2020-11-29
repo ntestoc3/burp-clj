@@ -44,10 +44,11 @@
   []
   (when-let [burp-tab (get-burp-tab)]
     (->> (.getSelectedIndex burp-tab)
-        (.getTitleAt burp-tab))))
+         (.getTitleAt burp-tab))))
 
 (defn switch-burp-tab
   [tab-title]
+  (log/info "switch burp tab to:" tab-title)
   (when-let [burp-tab (get-burp-tab)]
     (let [max-idx (-> (.getTabCount burp-tab)
                       dec)]
@@ -55,7 +56,12 @@
         (if (= tab-title (.getTitleAt burp-tab i))
           (.setSelectedIndex burp-tab i)
           (when (< i max-idx)
-            (recur (inc i))))))))
+            (recur (inc i)))))))
+  (log/info "------> curr tab:" (get-curr-burp-tab-title)))
+
+(defn switch-clojure-plugin-tab
+  []
+  (switch-burp-tab "Clojure Plugin"))
 
 (defn set-burp-clj-view!
   [view]

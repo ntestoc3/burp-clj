@@ -33,7 +33,7 @@
   (swap! db update :source (fn [v]
                              (remove #(= source %) v))))
 
-(defn load-script-file
+(defn- load-script-file
   [clj]
   (log/info :load-script-file clj)
   (helper/with-exception-default
@@ -50,7 +50,7 @@
                      (map str))]
       (load-script-file clj))))
 
-(defn load-scripts!
+(defn- load-scripts!
   "加载source下的脚本文件"
   [type target]
   (case type
@@ -71,10 +71,47 @@
   [script-k]
   (get-in @db [:scripts script-k]))
 
-(defn set-script-running!
-  [script-k running]
-  (swap! db update :scripts assoc-in [script-k :running] running))
+(defn get-callbacks
+  [callbacks-k]
+  (get @db callbacks-k))
 
+(defn- add-script!
+  [k info]
+  (swap! db update :scripts assoc k info)
+  (doseq [cb (get-callbacks :script-add-callback)]
+    (cb k info)))
+
+(defn- set-script-running!
+  [script-k running]
+  (swap! db update :scripts assoc-in [script-k :running] running)
+  (doseq [cb (get-callbacks :script-state-change-callback)]
+    (cb script-k (get-script script-k))))
+
+(defn- remove-all-script!
+  []
+  (swap! db assoc :scripts {})
+  (doseq [cb (get-callbacks :scripts-clear-callback)]
+    (cb)))
+
+(defn reg-script-add-callback
+  "注册添加script的回调函数
+  f 回调函数，添加script时调用(f script-k script-info)"
+  [f]
+  (swap! db update :script-add-callback conj f))
+
+(defn reg-scripts-clear-callback
+  "注册清除script的回调函数
+  f 回调函数，无参数，清除全部scripts时调用"
+  [f]
+  (swap! db update :scripts-clear-callback conj f))
+
+(defn reg-script-state-change-callback
+  "注册script状态更新的回调函数
+  f 回调函数，script状态更新时调用(f script-k script-info)"
+  [f]
+  (swap! db update :script-state-change-callback conj f))
+
+;;;;; script 
 (defn enable-script!
   [script-k]
   (when-let [{:keys [name
@@ -93,63 +130,63 @@
                      session-handling-action
                      tab]
               :as script-info} (get-script script-k)]
-    (log/info :enable-script! script-k name version)
-    (when context-menu
-      (doseq [[k v] context-menu]
-        (extender/register-context-menu-factory! k v)))
+    (when-not (:running script-info)
+      (helper/with-exception-default nil
+        (log/info :enable-script! script-k name version)
+        (when context-menu
+          (doseq [[k v] context-menu]
+            (extender/register-context-menu-factory! k v)))
 
-    (when http-listener
-      (doseq [[k v] http-listener]
-        (extender/register-http-listener! k v)))
+        (when http-listener
+          (doseq [[k v] http-listener]
+            (extender/register-http-listener! k v)))
 
-    (when intruder-payload-generator
-      (doseq [[k v] intruder-payload-generator]
-        (extender/register-intruder-payload-generator-factory! k v)))
+        (when intruder-payload-generator
+          (doseq [[k v] intruder-payload-generator]
+            (extender/register-intruder-payload-generator-factory! k v)))
 
-    (when intruder-payload-processor
-      (doseq [[k v] intruder-payload-processor]
-        (extender/register-intruder-payload-processor! k v)))
+        (when intruder-payload-processor
+          (doseq [[k v] intruder-payload-processor]
+            (extender/register-intruder-payload-processor! k v)))
 
-    (when message-editor-tab
-      (doseq [[k v] message-editor-tab]
-        (extender/register-message-editor-tab-factory! k v)))
+        (when message-editor-tab
+          (doseq [[k v] message-editor-tab]
+            (extender/register-message-editor-tab-factory! k v)))
 
-    (when proxy-listener
-      (doseq [[k v] proxy-listener]
-        (extender/register-proxy-listener! k v)))
+        (when proxy-listener
+          (doseq [[k v] proxy-listener]
+            (extender/register-proxy-listener! k v)))
 
-    (when scanner-check
-      (doseq [[k v] scanner-check]
-        (extender/register-scanner-check! k v)))
+        (when scanner-check
+          (doseq [[k v] scanner-check]
+            (extender/register-scanner-check! k v)))
 
-    (when scanner-insertion-point-provider
-      (doseq [[k v] scanner-insertion-point-provider]
-        (extender/register-scanner-insertion-point-provider! k v)))
+        (when scanner-insertion-point-provider
+          (doseq [[k v] scanner-insertion-point-provider]
+            (extender/register-scanner-insertion-point-provider! k v)))
 
-    (when scanner-listener
-      (doseq [[k v] scanner-listener]
-        (extender/register-scanner-listener! k v)))
+        (when scanner-listener
+          (doseq [[k v] scanner-listener]
+            (extender/register-scanner-listener! k v)))
 
-    (when scope-change-listener
-      (doseq [[k v] scope-change-listener]
-        (extender/register-scope-change-listener! k v)))
+        (when scope-change-listener
+          (doseq [[k v] scope-change-listener]
+            (extender/register-scope-change-listener! k v)))
 
-    (when session-handling-action
-      (doseq [[k v] session-handling-action]
-        (extender/register-session-handling-action! k v)))
+        (when session-handling-action
+          (doseq [[k v] session-handling-action]
+            (extender/register-session-handling-action! k v)))
 
-    (when tab
-      (let [curr-tab (helper/get-curr-burp-tab-title)]
-        (doseq [[k v] tab]
-          (extender/register-add-tab! k v))
-        (helper/switch-burp-tab curr-tab)))
+        (when tab
+          (doseq [[k v] tab]
+            (extender/register-add-tab! k v))
+          #_(helper/switch-clojure-plugin-tab))
 
-    (when enable-callback
-      (log/info :enable-script! script-k "run enable-callback" )
-      (enable-callback script-info))
+        (when enable-callback
+          (log/info :enable-script! script-k "run enable-callback" )
+          (enable-callback script-info))
 
-    (set-script-running! script-k true)
-    true))
+        (set-script-running! script-k true)))))
 
 (defn disable-script!
   [script-k]
@@ -170,66 +207,63 @@
                      tab
                      ]
               :as script-info} (get-script script-k)]
-    (helper/with-exception-default
-      nil
-      (log/info :disable-script! script-k name version)
-      (when disable-callback
-        (log/info :disable-script! script-k "run disable-callback" )
-        (disable-callback script-info))
+    (when (:running script-info)
+      (helper/with-exception-default
+        nil
+        (log/info :disable-script! script-k name version)
+        (when disable-callback
+          (log/info :disable-script! script-k "run disable-callback" )
+          (disable-callback script-info))
 
-      (when context-menu
-        (doseq [k (keys context-menu)]
-          (extender/remove-context-menu-factory! k)))
+        (when context-menu
+          (doseq [k (keys context-menu)]
+            (extender/remove-context-menu-factory! k)))
 
-      (when http-listener
-        (doseq [k (keys http-listener)]
-          (extender/remove-http-listener! k)))
+        (when http-listener
+          (doseq [k (keys http-listener)]
+            (extender/remove-http-listener! k)))
 
-      (when intruder-payload-generator
-        (doseq [k (keys intruder-payload-generator)]
-          (extender/remove-intruder-payload-generator-factory! k)))
+        (when intruder-payload-generator
+          (doseq [k (keys intruder-payload-generator)]
+            (extender/remove-intruder-payload-generator-factory! k)))
 
-      (when intruder-payload-processor
-        (doseq [k (keys intruder-payload-processor)]
-          (extender/remove-intruder-payload-processor! k)))
+        (when intruder-payload-processor
+          (doseq [k (keys intruder-payload-processor)]
+            (extender/remove-intruder-payload-processor! k)))
 
-      (when message-editor-tab
-        (doseq [k (keys message-editor-tab)]
-          (extender/remove-message-editor-tab-factory! k)))
+        (when message-editor-tab
+          (doseq [k (keys message-editor-tab)]
+            (extender/remove-message-editor-tab-factory! k)))
 
-      (when proxy-listener
-        (doseq [k (keys proxy-listener)]
-          (extender/remove-proxy-listener! k)))
+        (when proxy-listener
+          (doseq [k (keys proxy-listener)]
+            (extender/remove-proxy-listener! k)))
 
-      (when scanner-check
-        (doseq [k (keys scanner-check)]
-          (extender/remove-scanner-check! k)))
+        (when scanner-check
+          (doseq [k (keys scanner-check)]
+            (extender/remove-scanner-check! k)))
 
-      (when scanner-insertion-point-provider
-        (doseq [k (keys scanner-insertion-point-provider)]
-          (extender/remove-scanner-insertion-point-provider! k)))
+        (when scanner-insertion-point-provider
+          (doseq [k (keys scanner-insertion-point-provider)]
+            (extender/remove-scanner-insertion-point-provider! k)))
 
-      (when scanner-listener
-        (doseq [k (keys scanner-listener)]
-          (extender/remove-scanner-listener! k)))
+        (when scanner-listener
+          (doseq [k (keys scanner-listener)]
+            (extender/remove-scanner-listener! k)))
 
-      (when scope-change-listener
-        (doseq [k (keys scope-change-listener)]
-          (extender/remove-scope-change-listener! k)))
+        (when scope-change-listener
+          (doseq [k (keys scope-change-listener)]
+            (extender/remove-scope-change-listener! k)))
 
-      (when session-handling-action
-        (doseq [k (keys session-handling-action)]
-          (extender/remove-session-handling-action! k)))
+        (when session-handling-action
+          (doseq [k (keys session-handling-action)]
+            (extender/remove-session-handling-action! k)))
 
-      (when tab
-        (let [curr-tab (helper/get-curr-burp-tab-title)]
+        (when tab
           (doseq [k (keys tab)]
-            (extender/register-remove-tab! k))
-          (helper/switch-burp-tab curr-tab)))
+            (extender/register-remove-tab! k)))
 
-      (set-script-running! script-k false)
-      true
-      )))
+        (set-script-running! script-k false)))))
 
 (defn reload-script!
   [script-k]
@@ -268,7 +302,7 @@
         (->> (assoc info
                     :running false
                     :file *file*) ;; 初始化运行状态为false
-             (swap! db update :scripts assoc k))
+             (add-script! k))
         (when (:running old-info)
           (enable-script! k))
         true))))
@@ -286,7 +320,7 @@
     (extender/set-setting! :script/running running)
     (doseq [s running]
       (disable-script! s)))
-  (swap! db assoc :scripts {}))
+  (remove-all-script!))
 
 (defn load-sources-with-running!
   [running]
@@ -322,8 +356,7 @@
     (set-script-sources sources)
     (load-sources-with-running! running)
     (extender/register-extension-state-listener! :script/source-manager
-                                                 (make-unload-callback unload!)
-                                                 )))
+                                                 (make-unload-callback unload!))))
 
 (comment
 

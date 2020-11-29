@@ -7,14 +7,15 @@
             [seesaw.mig :refer [mig-panel]]
             [burp-clj.extender :as extender]
             [burp-clj.helper :as helper]
-            [burp-clj.utils :as utils :refer [override-delegate]]
+            [burp-clj.utils :as utils]
             [burp-clj.scripts :as script]
-            [taoensso.timbre :as log])
-  (:import javax.swing.table.TableModel))
+            [taoensso.timbre :as log]
+            [burp-clj.table-util :as table-util])
+  (:import javax.swing.table.DefaultTableModel))
 
-(def script-cols-info [{:key :running :text "enable" :class java.lang.Boolean}
-                       {:key :name :text "name" :class java.lang.String}
-                       {:key :version :text "version" :class java.lang.String}
+(def script-cols-info [{:key :running :text "enable" :editable true :class Boolean}
+                       {:key :name :text "name" :class String}
+                       {:key :version :text "version" :class String}
                        ])
 
 (defn make-scripts-model
@@ -28,26 +29,20 @@
       (fn [e]
         (when (= 0 (.getColumn e))
           (let [row (.getFirstRow e)
-                info (table/value-at model row)]
-            ;; 这里的info已经是修改过的
-            (log/info "table model change script:" (:script-key info)
-                      "running:" (:running info))
-            (if (:running info)
-              (script/enable-script! (:script-key info))
-              (script/disable-script! (:script-key info))))))))
-    (override-delegate TableModel model
-      ;; 必须让第一列可编辑，checkbox才起作用
-      (isCellEditable [_ row col]
-                      (if (= col 0)
-                        true
-                        false)))))
+                info (table/value-at model row)
+                script-info (script/get-script (:script-key info))]
+            (when-not (= (:running info)
+                         (:running script-info))
+              (if (:running info)
+                (script/enable-script! (:script-key info))
+                (script/disable-script! (:script-key info)))
+              (helper/switch-clojure-plugin-tab)))))))
+    model))
 
 (defn fix-script-info
   "修正script info，添加key"
-  [info]
-  (map (fn [[k v]]
-         (assoc v :script-key k))
-       info))
+  [k info]
+  (assoc info :script-key k))
 
 (defn make-table []
   (utils/fix-font!)
@@ -65,14 +60,25 @@
                                                              (-> (table/value-at tbl row)
                                                                  :script-key
                                                                  script/reload-script!))))])])
-                     :model (make-scripts-model (-> (script/get-scripts)
-                                                    fix-script-info)))]
+                     :model (make-scripts-model []))]
     (-> (.getTableHeader tbl)
         (.setReorderingAllowed false))
-    (bind/bind
-     script/db
-     (bind/transform (comp make-scripts-model fix-script-info :scripts))
-     (bind/property tbl :model))
+    (script/reg-script-add-callback (fn [k info]
+                                      (log/info "script table add callback:" k)
+                                      (gui/invoke-later
+                                       (->> (fix-script-info k info)
+                                            (table/add! tbl)))))
+    (script/reg-scripts-clear-callback (fn []
+                                         (log/info "script table clear callback.")
+                                         (gui/invoke-later
+                                          (table/clear! tbl))))
+    (script/reg-script-state-change-callback (fn [k info]
+                                               (log/info "script table change callback:" k)
+                                               (gui/invoke-later
+                                                (table-util/update-by! tbl
+                                                                       #(= k (:script-key %1))
+                                                                       (fn [_]
+                                                                         (fix-script-info k info))))))
     (gui/scrollable tbl)))
 
 

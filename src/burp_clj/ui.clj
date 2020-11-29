@@ -177,8 +177,9 @@ user=> (list-with-elem-at-index l \"b\" 4)
 
            [(gui/button :text "Add"
                         :listen [:action
-                                 (fn [e] (-> (gui/to-root e)
-                                             show-add-source-dlg))])
+                                 (fn [e]
+                                   (-> (gui/to-root e)
+                                       show-add-source-dlg))])
             "growx"]
 
            [(gui/scrollable (source-list))
@@ -199,9 +200,12 @@ user=> (list-with-elem-at-index l \"b\" 4)
                         :listen [:action (fn [e]
                                            (gui/invoke-later
                                             (gui/config! e :enabled? false)
-                                            (future (script/reload-sources!)
-                                                    (log/info "scripts load ok!")
-                                                    (gui/config! e :enabled? true))))])
+                                            (future
+                                              (script/reload-sources!)
+                                              (log/info "scripts reload ok!")
+                                              (gui/invoke-later
+                                               (helper/switch-clojure-plugin-tab)
+                                               (gui/config! e :enabled? true)))))])
             "grow,wrap"]
            ]))
 
