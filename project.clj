@@ -1,5 +1,5 @@
 (def feature-version "0.4")
-(def build-version "10")
+(def build-version "11")
 (def release-version (str feature-version "." build-version))
 (def project-name "burp-clj")
 
@@ -24,7 +24,10 @@
                  [com.climate/claypoole "1.1.4"] ;; thread pool
                  [diehard "0.10.2"] ;; retry limit
                  [com.rpl/specter "1.1.3"] ;; data manipulation
+                 [com.taoensso/tempura "1.2.1"] ;; i18n
                  ]
+  :plugins [[lein-codox "0.10.7"]]
+  :codox {:metadata {:doc/format :markdown}}
   :java-source-paths ["java-src"]
   :source-paths ["src"]
   :uberjar-name ~(str project-name "-" feature-version ".jar")

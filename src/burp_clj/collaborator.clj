@@ -3,6 +3,7 @@
             [camel-snake-kebab.core :as csk]
             [burp-clj.helper :as helper]
             [burp-clj.utils :as utils]
+            [burp-clj.i18n :as i18n]
             [seesaw.swingx :as guix]
             [seesaw.mig :refer [mig-panel]]
             [seesaw.table :as table]
@@ -35,7 +36,9 @@
 
 (defn gen-payload
   "生成Burp Collaborator payloads
-  `params`　生成带域名和params参数的payloads，如果不指定params，则只生成payload id"
+
+  `params`　生成带域名和params参数的payloads，如果不指定params，则只生成payload id
+  "
   ([bc]
    (.generatePayload bc false))
   ([bc params]
@@ -59,7 +62,8 @@
 
   返回的消息是未解码的原始interactions
 
-  注意:
+  **注意:**
+
   如果客户端`bc`已经创建了ui,不建议自己调用此函数，可以通过ui的callback函数获取解码过的interaction
   "
   ([bc]
@@ -86,7 +90,7 @@
          (utils/map->nsmap :params))
      {:request/raw request
       :response/raw response
-      :summary (str "The Collaborator server received an " protocol " request.")}
+      :summary (i18n/ptr :collaborator/http-summary protocol)}
      (dissoc msg :request :response)
      req-info
      (helper/flatten-format-req-resp response :response))))
@@ -96,8 +100,7 @@
   [{:keys [query-type raw-query type interaction-id] :as msg}]
   (merge
    {:request/raw raw-query
-    :summary (str "The Collaborator server received a DNS lookup of type " query-type
-                  " for the domain name " interaction-id ".")}
+    :summary (i18n/ptr :collaborator/dns-summary query-type interaction-id)}
    (dissoc msg :raw-query)))
 
 (defn parse-collaborator-msg
@@ -110,11 +113,11 @@
 
 (defn- make-collaborator-model
   [datas]
-  (table/table-model :columns [{:key :time-stamp :text "Time" }
-                               {:key :client-ip :text "IP"}
-                               {:key :type :text "Type"}
-                               {:key :interaction-id :text "Payload"}
-                               {:key :params/comment :text "Comment"}]
+  (table/table-model :columns [{:key :time-stamp :text (i18n/ptr :collaborator/col-time) }
+                               {:key :client-ip :text (i18n/ptr :collaborator/col-ip)}
+                               {:key :type :text (i18n/ptr :collaborator/col-type)}
+                               {:key :interaction-id :text (i18n/ptr :collaborator/col-payload)}
+                               {:key :params/comment :text (i18n/ptr :collaborator/col-comment)}]
                      :rows datas))
 
 (extender/defsetting :collaborator/poll-wait-time 5 int?)
@@ -167,7 +170,7 @@
                      :divider-location 1/2)
         dns-viewer (-> (helper/get-request-editor dns-message-controller)
                        (.getComponent))
-        unknown-viewer (gui/label :text "unsupported.")
+        unknown-viewer (gui/label :text (i18n/ptr :collaborator/unsupport-msg-tip))
         msg-viewer (gui/card-panel :id :collaborator-msg-viewer
                                    :items [[(gui/label) :none]
                                            [http-viewer :http]
@@ -198,7 +201,7 @@
           (do (Thread/sleep 2000)
               (recur)))))
     (gui/top-bottom-split (mig-panel
-                           :items [["Poll every"]
+                           :items [[(i18n/ptr :collaborator/poll-time-left)]
 
                                    [(gui/text :text (str (get-poll-wait-time))
                                               :listen [:document
@@ -207,14 +210,14 @@
                                                             set-poll-wait-time!)])
                                     "wmin 50"]
 
-                                   ["seconds."]
+                                   [(i18n/ptr :collaborator/poll-time-right)]
 
-                                   [(gui/button :text "Poll now"
+                                   [(gui/button :text (i18n/ptr :collaborator/btn-poll-now)
                                                 :listen [:action (fn [e]
                                                                    (future (poll-interactions)))])
                                     "gap 20px"]
 
-                                   [(gui/button :text "Generate payload"
+                                   [(gui/button :text (i18n/ptr :collaborator/btn-gen-payload)
                                                 :listen [:action (fn [e]
                                                                    (-> (gen-payload collaborator nil)
                                                                        (clip/contents!)))])

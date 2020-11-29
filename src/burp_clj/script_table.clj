@@ -9,14 +9,23 @@
             [burp-clj.helper :as helper]
             [burp-clj.utils :as utils]
             [burp-clj.scripts :as script]
+            [burp-clj.i18n :as i18n]
             [taoensso.timbre :as log]
             [burp-clj.table-util :as table-util])
   (:import javax.swing.table.DefaultTableModel))
 
-(def script-cols-info [{:key :running :text "enable" :editable true :class Boolean}
-                       {:key :name :text "name" :class String}
-                       {:key :version :text "version" :class String}
-                       ])
+(def script-cols-info (when-not *compile-files*
+                        [{:key :running
+                          :text (i18n/ptr :script-list-form/col-enable)
+                          :editable true
+                          :class Boolean}
+                         {:key :name
+                          :text (i18n/ptr :script-list-form/col-name)
+                          :class String}
+                         {:key :version
+                          :text (i18n/ptr :script-list-form/col-version)
+                          :class String}
+                         ]))
 
 (defn make-scripts-model
   [scripts-info]
@@ -51,7 +60,7 @@
         tbl (table-x :id :script-table
                      :popup (gui/popup
                              :items [(gui/menu-item
-                                      :text "reload script"
+                                      :text (i18n/ptr :script-list-form/menu-reload)
                                       :listen [:action (fn [e]
                                                          (let [tbl (-> (gui/to-root e)
                                                                        (gui/select [:#script-table]))

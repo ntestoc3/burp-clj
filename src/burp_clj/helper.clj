@@ -4,6 +4,7 @@
             [burp-clj.extender :as extender]
             [taoensso.timbre :as log]
             [camel-snake-kebab.core :as csk]
+            [burp-clj.i18n :as i18n]
             [burp-clj.state :as state]
             [burp-clj.utils :refer [def-enum-fileds-map]]
             [burp-clj.utils :as utils])
@@ -61,7 +62,7 @@
 
 (defn switch-clojure-plugin-tab
   []
-  (switch-burp-tab "Clojure Plugin"))
+  (switch-burp-tab (i18n/ptr :plugin-name)))
 
 (defn set-burp-clj-view!
   [view]

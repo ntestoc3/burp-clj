@@ -1,10 +1,10 @@
 (ns burp-clj.core
   (:require [burp-clj.extender :as extender]
-            [burp-clj.ui :as ui]
             [burp-clj.version :as version]
             [burp-clj.helper :as helper]
-            [burp-clj.scripts :as script]
             [burp-clj.utils :as utils]
+            [burp-clj.i18n :as i18n]
+            [burp-clj.scripts :as script]
             [taoensso.timbre :as log]
             )
   (:gen-class)
@@ -31,8 +31,9 @@
 
   (log/info :register "clojure plugin version:" (version/get-version))
 
-  (let [view (ui/make-view)]
-    (extender/add-tab! "Clojure Plugin" view)
+  (require '[burp-clj.ui :as ui])
+  (let [view ((utils/dyn-call :burp-clj.ui/make-view))]
+    (extender/add-tab! (i18n/ptr :plugin-name) view)
     (helper/set-burp-clj-view! view))
 
   (script/init!)

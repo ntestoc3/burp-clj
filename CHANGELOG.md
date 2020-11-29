@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.4.11] - 2020-11-29 
+### Added
+- 添加i18n支持
+
 ## 0.4.10 - 2020-11-29 
 ### Fixed 
 - 修改主界面脚本加载时表格异常的提问

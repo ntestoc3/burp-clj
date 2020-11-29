@@ -17,6 +17,7 @@
             [burp-clj.script-table :as script-table]
             [burp-clj.utils :as utils]
             [burp-clj.scripts :as script]
+            [burp-clj.i18n :as i18n]
             [burp-clj.helper :as helper]))
 
 (defn make-header
@@ -45,7 +46,7 @@
 (defn choose-dir-btn
   [default-dir target-path]
   (gui/button :icon (io/resource "open_dir.png")
-              :text "Choose Folder"
+              :text (i18n/ptr :choose-folder)
               :listen [:action (fn [e]
                                  (let [root (gui/to-root e)]
                                    (when-let [path (choose-file root
@@ -56,9 +57,7 @@
                                          (gui/text! (str path))))))]))
 
 (defn input-dir
-  [{:keys [parent title text default-path]
-    :or {text "input info:"
-         title "get info"}}]
+  [{:keys [parent title text default-path]}]
   (let [dlg (gui/dialog
              :parent parent
              :title title
@@ -91,14 +90,14 @@
 (defn show-add-source-dlg
   [parent]
   (utils/add-dep [])
-  (when-some [source (input-dir {:title "add source info"
+  (when-some [source (input-dir {:title (i18n/ptr :add-source-dlg/title)
                                  :parent parent
-                                 :text "input source target:"})]
+                                 :text (i18n/ptr :add-source-dlg/msg)})]
     (try
       (script/add-script-source! source)
       (catch AssertionError _
         (gui/invoke-later
-         (gui/alert (format "%s not a valid source!" source)))))))
+         (gui/alert (i18n/ptr :add-source-dlg/not-valid source)))))))
 
 (defn list-with-elem-at-index
   "Given a sequence cur-order and elem-to-move is one of the items
@@ -172,10 +171,10 @@ user=> (list-with-elem-at-index l \"b\" 4)
                  "[][fill,grow]"
                  ""
                  ]
-   :items [[(make-header {:text "Scripts Source"})
+   :items [[(make-header {:text (i18n/ptr :script-source-form/header)})
             "span, grow, wrap"]
 
-           [(gui/button :text "Add"
+           [(gui/button :text (i18n/ptr :script-source-form/add)
                         :listen [:action
                                  (fn [e]
                                    (-> (gui/to-root e)
@@ -183,9 +182,9 @@ user=> (list-with-elem-at-index l \"b\" 4)
             "growx"]
 
            [(gui/scrollable (source-list))
-            "spany 5, grow, wrap, wmin 500"]
+            "spany 5, grow, wrap, wmin 300"]
 
-           [(gui/button :text "Remove"
+           [(gui/button :text (i18n/ptr :script-source-form/remove)
                         :listen [:action
                                  (fn [e]
                                    (when-let [sel (-> (gui/to-root e)
@@ -196,7 +195,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
                                      (script/remove-script-source! sel)))])
             "grow, wrap"]
 
-           [(gui/button :text "Reload Scripts!"
+           [(gui/button :text (i18n/ptr :script-source-form/reload)
                         :listen [:action (fn [e]
                                            (gui/invoke-later
                                             (gui/config! e :enabled? false)
@@ -215,24 +214,21 @@ user=> (list-with-elem-at-index l \"b\" 4)
   (let [proxy (helper/get-proxy)]
     (mig-panel
      ;; :border (border/empty-border :left 10 :top 10)
-     :items [[(make-header {:text "HTTP Proxy"})
-              "span, grow, wrap"]
-
-             [(gui/checkbox :text "Use HTTP proxy"
+     :items [[(gui/checkbox :text (i18n/ptr :http-proxy-form/check-text)
                             :selected? (:enabled proxy)
                             :listen [:action
                                      #(->> (gui/selection %1)
                                            (helper/update-proxy! assoc :enabled))])
               "span, grow, wrap"]
 
-             ["HTTP proxy host:"]
+             [(i18n/ptr :http-proxy-form/host)]
              [(gui/text :text (:host proxy)
                         :listen [:document
                                  #(->> (gui/text %)
                                        (helper/update-proxy! assoc :host))])
-              "grow, wrap, wmin 300"]
+              "grow, wrap, wmin 200"]
 
-             ["HTTP proxy port:"]
+             [(i18n/ptr :http-proxy-form/port)]
              [(gui/text :text (str (:port proxy))
                         :listen [:focus-lost
                                  (fn [e]
@@ -242,7 +238,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
                                           (helper/update-proxy! assoc :port))
                                      (catch Exception e
                                        (gui/alert e
-                                                  (str "not valid port: " (gui/text e))
+                                                  (i18n/ptr :http-proxy-form/not-valid-port (gui/text e))
                                                   :type :error)
                                        (gui/invoke-now
                                         (-> (helper/get-proxy)
@@ -251,28 +247,62 @@ user=> (list-with-elem-at-index l \"b\" 4)
                                             (gui/text! e))))))])
               "grow, wrap"]
 
-             ["Username:"]
+             [(i18n/ptr :http-proxy-form/username)]
              [(gui/text :text (:username proxy)
                         :listen [:document
                                  #(->> (gui/text %)
                                        (helper/update-proxy! assoc :username))])
               "grow, wrap"]
 
-             ["Password:"]
+             [(i18n/ptr :http-proxy-form/password)]
              [(gui/text :text (:password proxy)
                         :listen [:document
                                  #(->> (gui/text %)
                                        (helper/update-proxy! assoc :password))])
               "grow, wrap"]
 
-             ["Exclusion:"]
+             [(i18n/ptr :http-proxy-form/exclusion)]
              [(gui/text :text (:non-proxy-hosts proxy)
-                        :tip "The list of hosts to exclude from proxying."
+                        :tip (i18n/ptr :http-proxy-form/exclusion-tip)
                         :listen [:document
                                  #(->> (gui/text %)
                                        (helper/update-proxy! assoc :non-proxy-hosts))])
               "grow, wrap"]
              ])))
+
+(defn lang-cell [this {:keys [value selected?]}]
+  (if value
+    (gui/config! this :text (get i18n/supported-lang value))
+    (gui/config! this :text "None")))
+
+(defn misc-form
+  []
+  (mig-panel
+   :items [[(i18n/ptr :setting-form/select-language)]
+           [(gui/combobox :id :select-language
+                          :model (keys i18n/supported-lang)
+                          :renderer lang-cell
+                          :tip (i18n/ptr :setting-form/select-language-tip)
+                          :selected-item (i18n/get-language)
+                          :listen [:selection (fn [e]
+                                                (-> (gui/selection e)
+                                                    (i18n/set-language!)))])
+            "grow, wrap"]]))
+
+(defn setting-form
+  []
+  (mig-panel
+   ;; :border [(border/line-border :thickness 1) 5]
+   :items [[(make-header {:text (i18n/ptr :setting-form/header)})
+            "span, grow, wrap"]
+
+           [(gui/tabbed-panel
+             :tabs [{:title (i18n/ptr :http-proxy-form/header)
+                     :content (proxy-form)}
+
+                    {:title (i18n/ptr :setting-form/misc-tab-title)
+                     :content (misc-form)}])
+            "grow, wrap, wmin 200"]]))
 
 (defn make-view
   []
@@ -284,13 +314,13 @@ user=> (list-with-elem-at-index l \"b\" 4)
                  ]
    :items [[(script-source-form)]
 
-           [(proxy-form)
+           [(setting-form)
             "span, grow, wrap"]
 
            [(gui/separator)
             "span, wrap"]
 
-           [(make-header {:text "Scripts List"})
+           [(make-header {:text (i18n/ptr :script-list-form/header)})
             "span, wrap"]
 
            [(script-table/make-table)

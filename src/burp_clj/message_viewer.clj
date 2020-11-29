@@ -15,6 +15,7 @@
             [burp-clj.syntax-editor :as syntax-editor]
             [burp-clj.extender :as extender]
             [burp-clj.filter-exp :as filter-exp]
+            [burp-clj.i18n :as i18n]
             [seesaw.core :as gui]
             [clojure.set :as set])
   (:import javax.swing.ComboBoxEditor
@@ -99,7 +100,7 @@
                       (apply concat editor-options))
         combox-editor (make-syntax-combox-editor editor)]
     (->> (.getSize model)
-         (.insertElementAt model "clear all..."))
+         (.insertElementAt model (i18n/ptr :message-viewer/filter-clear-all)))
     (.addActionListener combox-editor
                         (gui/action
                          :name "check syntax"
@@ -130,13 +131,13 @@
                 (fn [e]
                   (let [exp (gui/selection cb)]
                     (log/info "cb selection:" exp)
-                    (when (and (= exp "clear all...")
+                    (when (and (= exp (i18n/ptr :message-viewer/filter-clear-all))
                                (> (.getSize model) 1))
                       (log/info "clear all filter info:" setting-key)
                       (.removeAllElements model)
                       (extender/set-setting! setting-key '())
                       (.addElement model "")
-                      (.addElement model "clear all...")))))
+                      (.addElement model (i18n/ptr :message-viewer/filter-clear-all))))))
     (.setEditor cb combox-editor)
     cb))
 
@@ -227,7 +228,7 @@
                          (row-filter)
                          (.setRowFilter sorter)))))
     (gui/top-bottom-split (mig-panel
-                           :items [["Filter:"]
+                           :items [[(i18n/ptr :message-viewer/lbl-filter)]
                                    [filter-cb
                                     "wrap, grow"]
                                    [(gui/scrollable tbl)
