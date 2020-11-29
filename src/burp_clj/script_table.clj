@@ -64,16 +64,13 @@
     (-> (.getTableHeader tbl)
         (.setReorderingAllowed false))
     (script/reg-script-add-callback (fn [k info]
-                                      (log/info "script table add callback:" k)
                                       (gui/invoke-later
                                        (->> (fix-script-info k info)
                                             (table/add! tbl)))))
     (script/reg-scripts-clear-callback (fn []
-                                         (log/info "script table clear callback.")
                                          (gui/invoke-later
                                           (table/clear! tbl))))
     (script/reg-script-state-change-callback (fn [k info]
-                                               (log/info "script table change callback:" k)
                                                (gui/invoke-later
                                                 (table-util/update-by! tbl
                                                                        #(= k (:script-key %1))
