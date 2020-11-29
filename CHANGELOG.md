@@ -1,24 +1,25 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [Unreleased]
-### Changed
-- Add a new arity to `make-widget-async` to provide a different widget shape.
+## 0.4.10 - 2020-11-29 
+### Fixed 
+- 修改主界面脚本加载时表格异常的提问
 
-## [0.1.1] - 2019-03-17
-### Changed
-- Documentation on how to make the widgets.
+### Added 
+- 主界面add scripts source对话框中增加选择文件夹按钮
+- 添加CHANGELOG
 
-### Removed
-- `make-widget-sync` - we're all async, all the time.
-
+## 0.4.9 - 2020-11-28 
 ### Fixed
-- Fixed widget maker to keep working when daylight savings switches over.
+- 解决向message viewer table中添加数据异常的问题
+- 解决message viewer table行中颜色设置错误的问题
 
-## 0.1.0 - 2019-03-17
+## 0.4.8 - 2020-11-27
+### Fixed
+- 解决burp collaborator界面的定时器问题
+
+## 0.4.7 - 2020-11-26
 ### Added
-- Files from the new template.
-- Widget maker public API - `make-widget-sync`.
+- 添加burp collaborator界面
 
-[Unreleased]: https://github.com/your-name/burp-clj/compare/0.1.1...HEAD
 [0.1.1]: https://github.com/your-name/burp-clj/compare/0.1.0...0.1.1
