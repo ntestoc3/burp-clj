@@ -271,6 +271,7 @@ user=> (list-with-elem-at-index l \"b\" 4)
              ])))
 
 (defn lang-cell [this {:keys [value selected?]}]
+  (log/info :lang-cell-renderer value " type:" (type value))
   (if value
     (gui/config! this :text (get i18n/supported-lang value))
     (gui/config! this :text "None")))

@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 - 添加i18n支持
 
+### Fixed
+- 卸载插件时script-table调用switch-clojure-plugin-tab造成异常
+
 ## 0.4.10 - 2020-11-29 
 ### Fixed 
 - 修改主界面脚本加载时表格异常的提问

@@ -43,9 +43,9 @@
             (when-not (= (:running info)
                          (:running script-info))
               (if (:running info)
-                (script/enable-script! (:script-key info))
-                (script/disable-script! (:script-key info)))
-              (helper/switch-clojure-plugin-tab)))))))
+                (do (script/enable-script! (:script-key info))
+                    (helper/switch-clojure-plugin-tab))
+                (script/disable-script! (:script-key info)))))))))
     model))
 
 (defn fix-script-info
