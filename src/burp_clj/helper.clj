@@ -47,6 +47,15 @@
     (->> (.getSelectedIndex burp-tab)
          (.getTitleAt burp-tab))))
 
+(defn set-burp-clj-view!
+  [view]
+  (swap! state/state assoc :burp-clj-view view)
+  (set-burp-tab! (delay (find-burp-tab view))))
+
+(defn get-burp-clj-view
+  []
+  (:burp-clj-view @state/state))
+
 (defn switch-burp-tab
   [tab-title]
   (log/info "switch burp tab to:" tab-title)
@@ -62,12 +71,9 @@
 
 (defn switch-clojure-plugin-tab
   []
-  (switch-burp-tab (i18n/ptr :plugin-name)))
-
-(defn set-burp-clj-view!
-  [view]
-  (swap! state/state assoc :burp-clj-view view)
-  (set-burp-tab! (delay (find-burp-tab view))))
+  (when-let [burp-tab (get-burp-tab)]
+    (->> (get-burp-clj-view)
+         (.setSelectedComponent burp-tab))))
 
 (defn get-helper []
   (-> (extender/get)
