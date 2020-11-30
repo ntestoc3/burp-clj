@@ -5,6 +5,7 @@
             [seesaw.border :as border]
             [burp-clj.state :as state]
             [seesaw.mig :refer [mig-panel]]
+            [seesaw.swingx :as guix]
             [burp-clj.extender :as extender]
             [burp-clj.helper :as helper]
             [burp-clj.utils :as utils]
@@ -43,9 +44,9 @@
             (when-not (= (:running info)
                          (:running script-info))
               (if (:running info)
-                (do (script/enable-script! (:script-key info))
-                    (helper/switch-clojure-plugin-tab))
-                (script/disable-script! (:script-key info)))))))))
+                (script/enable-script! (:script-key info))
+                (script/disable-script! (:script-key info)))
+              (helper/switch-clojure-plugin-tab)))))))
     model))
 
 (defn fix-script-info
@@ -54,37 +55,39 @@
   (assoc info :script-key k))
 
 (defn make-table []
-  (utils/fix-font!)
-  (require '[seesaw.swingx])
-  (let [table-x (utils/dyn-call seesaw.swingx/table-x)
-        tbl (table-x :id :script-table
-                     :popup (gui/popup
-                             :items [(gui/menu-item
-                                      :text (i18n/ptr :script-list-form/menu-reload)
-                                      :listen [:action (fn [e]
-                                                         (let [tbl (-> (gui/to-root e)
-                                                                       (gui/select [:#script-table]))
-                                                               row (gui/selection tbl)]
-                                                           (when row
-                                                             (-> (table/value-at tbl row)
-                                                                 :script-key
-                                                                 script/reload-script!))))])])
-                     :model (make-scripts-model []))]
+  (let [tbl (guix/table-x :id :script-table
+                          :popup (gui/popup
+                                  :items [(gui/menu-item
+                                           :text (i18n/ptr :script-list-form/menu-reload)
+                                           :listen [:action (fn [e]
+                                                              (let [tbl (-> (gui/to-root e)
+                                                                            (gui/select [:#script-table]))
+                                                                    row (gui/selection tbl)]
+                                                                (when row
+                                                                  (-> (table/value-at tbl row)
+                                                                      :script-key
+                                                                      script/reload-script!))))])])
+                          :model (make-scripts-model []))
+        unload (atom false)]
     (-> (.getTableHeader tbl)
         (.setReorderingAllowed false))
+    (script/reg-scripts-unload-callback #(reset! unload true))
     (script/reg-script-add-callback (fn [k info]
-                                      (gui/invoke-later
-                                       (->> (fix-script-info k info)
-                                            (table/add! tbl)))))
+                                      (when-not @unload
+                                        (gui/invoke-later
+                                         (->> (fix-script-info k info)
+                                              (table/add! tbl))))))
     (script/reg-scripts-clear-callback (fn []
-                                         (gui/invoke-later
-                                          (table/clear! tbl))))
+                                         (when-not @unload
+                                           (gui/invoke-later
+                                            (table/clear! tbl)))))
     (script/reg-script-state-change-callback (fn [k info]
-                                               (gui/invoke-later
-                                                (table-util/update-by! tbl
-                                                                       #(= k (:script-key %1))
-                                                                       (fn [_]
-                                                                         (fix-script-info k info))))))
+                                               (when-not @unload
+                                                 (gui/invoke-later
+                                                  (table-util/update-by! tbl
+                                                                         #(= k (:script-key %1))
+                                                                         (fn [_]
+                                                                           (fix-script-info k info)))))))
     (gui/scrollable tbl)))
 
 

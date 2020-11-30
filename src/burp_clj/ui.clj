@@ -271,24 +271,57 @@ user=> (list-with-elem-at-index l \"b\" 4)
              ])))
 
 (defn lang-cell [this {:keys [value selected?]}]
-  (log/info :lang-cell-renderer value " type:" (type value))
   (if value
     (gui/config! this :text (get i18n/supported-lang value))
-    (gui/config! this :text "None")))
+    (gui/config! this :text "None"))
+  (when selected?
+    (.setBackground this (color/color "#ffc599"))))
 
 (defn misc-form
   []
   (mig-panel
    :items [[(i18n/ptr :setting-form/select-language)]
-           [(gui/combobox :id :select-language
-                          :model (keys i18n/supported-lang)
-                          :renderer lang-cell
-                          :tip (i18n/ptr :setting-form/select-language-tip)
-                          :selected-item (i18n/get-language)
-                          :listen [:selection (fn [e]
-                                                (-> (gui/selection e)
-                                                    (i18n/set-language!)))])
+           [(let [cb (gui/combobox :id :select-language
+                                   :model (keys i18n/supported-lang)
+                                   :tip (i18n/ptr :setting-form/select-language-tip)
+                                   :selected-item (i18n/get-language)
+                                   :listen [:selection (fn [e]
+                                                         (-> (gui/selection e)
+                                                             (i18n/set-language!)))])]
+              ;; HACK burp customizeUiComponent会覆盖cell renderer
+              ;;  在组件显示时重新修改cell renderer
+              (doto cb
+                (utils/add-showing-listener
+                 #(gui/config! cb :renderer lang-cell))))
             "grow, wrap"]]))
+
+(comment
+  (defn log-comp-info
+    [comp info]
+    (log/info info
+              "showing:" (.isShowing comp)
+              "valid:" (.isValid comp)
+              "displayable:" (.isDisplayable comp)
+              "visible:" (.isVisible comp)))
+
+  (utils/add-showing-listener
+   #(log-comp-info cb "cb shoiwng")
+   {:once false})
+
+  (utils/add-showing-listener
+   #(log-comp-info cb "cb hiding")
+   {:once false
+    :showing false})
+
+  (utils/add-ancestor-listener
+   {:add-cb (fn [e]
+              (log-comp-info cb "cb add..."))
+    :remove-cb (fn [e]
+                 (log-comp-info cb "cb remove..."))
+    :move-cb (fn [e]
+               (log-comp-info cb "cb move..."))})
+
+  )
 
 (defn setting-form
   []

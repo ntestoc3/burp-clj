@@ -4,6 +4,7 @@
             [burp-clj.helper :as helper]
             [burp-clj.utils :as utils]
             [burp-clj.i18n :as i18n]
+            [burp-clj.ui :as ui]
             [burp-clj.scripts :as script]
             [taoensso.timbre :as log]
             )
@@ -23,7 +24,6 @@
   "注册回调"
   [cbs]
   (.setExtensionName cbs "Clojure Plugin")
-  (extender/set! cbs)
   (utils/add-dep []) ;; 设置class loader,重复加载插件，classpath会变
   (utils/log-time-format!)
 
@@ -31,8 +31,7 @@
 
   (log/info :register "clojure plugin version:" (version/get-version))
 
-  (require '[burp-clj.ui :as ui])
-  (let [view ((utils/dyn-call :burp-clj.ui/make-view))]
+  (let [view (ui/make-view)]
     (extender/add-tab! (i18n/ptr :plugin-name) view)
     (helper/set-burp-clj-view! view))
 

@@ -95,23 +95,33 @@
 
 (defn reg-script-add-callback
   "注册添加script的回调函数
-  f 回调函数，添加script时调用(f script-k script-info)"
+
+  `f` 回调函数，添加script时调用(f script-k script-info)"
   [f]
   (swap! db update :script-add-callback conj f))
 
-(defn reg-scripts-clear-callback
-  "注册清除script的回调函数
-  f 回调函数，无参数，清除全部scripts时调用"
-  [f]
-  (swap! db update :scripts-clear-callback conj f))
-
 (defn reg-script-state-change-callback
   "注册script状态更新的回调函数
-  f 回调函数，script状态更新时调用(f script-k script-info)"
+
+  `f` 回调函数，script状态更新时调用(f script-k script-info)"
   [f]
   (swap! db update :script-state-change-callback conj f))
 
-;;;;; script 
+(defn reg-scripts-clear-callback
+  "注册清除script的回调函数
+
+  `f` 回调函数，无参数，清除全部scripts时调用"
+  [f]
+  (swap! db update :scripts-clear-callback conj f))
+
+(defn reg-scripts-unload-callback
+  "注册script卸载回调函数，所有脚本卸载时调用
+
+  `f` 回调函数，无参数，卸载所有scripts时调用"
+  [f]
+  (swap! db update :scripts-unload-callback conj f))
+
+;;;;; script
 (defn enable-script!
   [script-k]
   (when-let [{:keys [name
@@ -343,6 +353,8 @@
 
 (defn unload!
   []
+  (doseq [cb (get-callbacks :scripts-unload-callback)]
+    (cb))
   (unreg-all-script!)
   (extender/set-setting! :script/sources (get-script-sources)))
 

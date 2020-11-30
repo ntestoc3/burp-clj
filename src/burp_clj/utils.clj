@@ -13,8 +13,9 @@
             [clojure.java.io :as io])
   (:import [clojure.lang DynamicClassLoader RT]
            burp.IHttpRequestResponse
-           [java.net URLEncoder URLDecoder])
-  )
+           [java.awt.event HierarchyEvent HierarchyListener]
+           [javax.swing.event AncestorListener]
+           [java.net URLEncoder URLDecoder]))
 
 ;;;;;;;;;;;;;;;; dep helper
 (def default-repo (merge cemerick.pomegranate.aether/maven-central
@@ -181,6 +182,67 @@
   [handler]
   (reify javax.swing.event.TableModelListener
     (tableChanged [this e] (handler e))))
+
+(defn add-ancestor-listener
+  "添加ancesotr事件监听
+
+  `comp` 控件
+
+  ｀opts` 选项:
+  - `:add-cb` 	ANCESTOR_ADDED 回调函数，接受一个AncestorEvent参数, 控件显示时调用
+  - `:move-cb` ANCESTOR_MOVED 回调函数,接受一个AncestorEvent参数, 控件显示并且移动时调用
+  - `:remove-cb` ANCESTOR_REMOVED 回调函数,接受一个AncestorEvent参数, 控件隐藏时调用
+  - `:once` 是否只调用一次，默认为false
+  "
+  [comp {:keys [add-cb
+                move-cb
+                remove-cb
+                once]}]
+  (.addAncestorListener comp
+                        (reify AncestorListener
+                          (ancestorAdded [this e]
+                            (when add-cb
+                              (add-cb e))
+                            (when once
+                              (.removeAncestorListener comp this)))
+                          (ancestorMoved [this e]
+                            (when move-cb
+                              (move-cb e))
+                            (when once
+                              (.removeAncestorListener comp this)))
+                          (ancestorRemoved [this e]
+                            (when remove-cb
+                              (remove-cb e))
+                            (when once
+                              (.removeAncestorListener comp this))))))
+
+(defn add-showing-listener
+  "添加控件显示事件
+
+  `comp` 要添加事件的控件
+
+  `callback` 无参数的回调函数
+
+  `opts` 可选参数:
+  - `:showing` 控件显示时回调，默认为true,如果为false,则在控件不可见时回调
+  - `:once` 只调用一次,默认为true,如果为false,则控件每次显示或隐藏时都会调用
+  "
+  ([comp callback] (add-showing-listener comp callback nil))
+  ([comp callback {:keys [showing once]
+                   :or {showing true
+                        once true}}]
+   (.addHierarchyListener
+    comp
+    (reify java.awt.event.HierarchyListener
+      (hierarchyChanged [this e]
+        (when (and (not= 0 (bit-and
+                            ^Integer (.getChangeFlags e)
+                            ^Integer HierarchyEvent/SHOWING_CHANGED))
+                   (cond-> (.isShowing comp)
+                     (not showing) not))
+          (callback)
+          (when once
+            (.removeHierarchyListener comp this))))))))
 
 (defn fix-font!
   "修正font, burp的UI Font类型为awt.Font, 修正为FontUIResource
