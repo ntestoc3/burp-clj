@@ -13,6 +13,16 @@
        (map-indexed vector)
        (filter (comp f second))))
 
+(defn values-by
+  "根据条件查找table的所有行
+
+  ｀filter-pred` 过滤函数，参数为table row数据
+
+  返回符合(filter-pred row)的所有行"
+  [tbl filter-pred]
+  (->> (filter-table-by tbl filter-pred)
+       (map second)))
+
 (defn insert-by!
   "根据条件查找并插入新行
 

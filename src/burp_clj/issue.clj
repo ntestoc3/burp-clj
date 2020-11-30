@@ -1,6 +1,7 @@
 (ns burp-clj.issue
   (:require [burp-clj.helper :as helper]
-            [clojure.spec.alpha :as s])
+            [clojure.spec.alpha :as s]
+            [burp-clj.extender :as extender])
   (:import [burp IScanIssue IScannerCheck IHttpRequestResponse IHttpService]))
 
 (def severity-type "issue严重性级别"
@@ -44,22 +45,30 @@
                    :issue/remediation-background]))
 
 (defn make-issue
-  [info]
+  [{:keys [confidence http-messages http-service
+           background
+           detail
+           name
+           remediation-background
+           remediation-detail
+           severity
+           url
+           type]
+    :or {type :extension}
+    :as info}]
   {:pre (s/valid? :burp/issue info)}
   (reify IScanIssue
-    (getConfidence [this] (confidence-type (:confidence info)))
-    (getHttpMessages [this] (into-array IHttpRequestResponse (:http-messages info)))
-    (getHttpService [this] (:http-service info))
-    (getIssueBackground [this] (:background info))
-    (getIssueDetail [this] (:detail info))
-    (getIssueName [this] (:name info))
-    (^int getIssueType [this] (or (some-> (:type info)
-                                          issue-type)
-                                  (issue-type :extension)))
-    (getRemediationBackground [this] (:remediation-background info))
-    (getRemediationDetail [this] (:remediation-detail info))
-    (getSeverity [this] (severity-type (:severity info)))
-    (getUrl [this] (:url info))))
+    (getConfidence [this] (confidence-type confidence))
+    (getHttpMessages [this] (into-array IHttpRequestResponse http-messages))
+    (getHttpService [this] http-service)
+    (getIssueBackground [this] background)
+    (getIssueDetail [this] detail)
+    (getIssueName [this] name)
+    (^int getIssueType [this] (issue-type type))
+    (getRemediationBackground [this] remediation-background)
+    (getRemediationDetail [this] remediation-detail)
+    (getSeverity [this] (severity-type severity))
+    (getUrl [this] url)))
 
 (def duplicate-issues-indication "重复扫描的issue如何处理"
   {:existing -1 ;; 保留旧的
@@ -88,4 +97,9 @@
       (passive-scan-fn req-resp))))
 
 
+(defn add-issue!
+  "添加issue到burp"
+  [issue]
+  (-> (extender/get)
+      (.addScanIssue issue)))
 

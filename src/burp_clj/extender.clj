@@ -304,3 +304,14 @@
                       (java.io.ByteArrayInputStream.)
                       io/reader)]
     (json/decode-stream rdr csk/->kebab-case-keyword)))
+
+(defn add-scope!
+  [url]
+  (-> (get)
+      (.includeInScope url)))
+
+(defn in-scope?
+  [url]
+  (-> (get)
+      (.isInScope url)))
+
