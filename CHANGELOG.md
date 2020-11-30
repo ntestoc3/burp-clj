@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file. This change
 ## 0.4.12 - 
 
 ### Fixed
-- 重复加载相同的脚本,script-table显示错误的问题
+- 重复加载相同的脚本,script-table处理错误的问题(无法区分是用户点击还是代码修改table model数据)
+
+### Changed
+- table-util insert-by!找不到条件就新增行
 
 ## 0.4.11 - 2020-11-30
 ### Added

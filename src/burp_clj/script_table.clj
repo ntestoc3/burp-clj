@@ -18,7 +18,6 @@
 (def script-cols-info (when-not *compile-files*
                         [{:key :running
                           :text (i18n/ptr :script-list-form/col-enable)
-                          :editable true
                           :class Boolean}
                          {:key :name
                           :text (i18n/ptr :script-list-form/col-name)
@@ -30,26 +29,8 @@
 
 (defn make-scripts-model
   [scripts-info]
-  (let [model (table/table-model :columns script-cols-info
-                                 :rows scripts-info)]
-    ;; 绑定修改事件
-    (.addTableModelListener
-     model
-     (utils/table-model-listener
-      (fn [e]
-        (when (= 0 (.getColumn e))
-          (let [row (.getFirstRow e)
-                info (table/value-at model row)
-                script-info (script/get-script (:script-key info))]
-            (when-not (= (:running info)
-                         (:running script-info))
-              (log/info "script table model enable state change:" (:running info)
-                        "org running info:" (:running script-info))
-              #_(if (:running info)
-                (script/enable-script! (:script-key info))
-                (script/disable-script! (:script-key info)))
-              (helper/switch-clojure-plugin-tab)))))))
-    model))
+  (table/table-model :columns script-cols-info
+                     :rows scripts-info))
 
 (defn fix-script-info
   "修正script info，添加key"
@@ -68,9 +49,21 @@
                                                                 (when row
                                                                   (-> (table/value-at tbl row)
                                                                       :script-key
-                                                                      script/reload-script!))))
-                                                    ])])
-                          :model (make-scripts-model []))
+                                                                      script/reload-script!))))])])
+                          :model (make-scripts-model [])
+                          :listen [:mouse-clicked (fn [e]
+                                                    (let [tbl (gui/to-widget e)
+                                                          p (.getPoint e)
+                                                          row (.rowAtPoint tbl p)
+                                                          col (.columnAtPoint tbl p)]
+                                                      (when (and (pos? row)
+                                                                 (= 0 col))
+                                                        (let [row (.convertRowIndexToModel tbl row)
+                                                              info (table/value-at tbl row)]
+                                                          (if (:running info)
+                                                            (script/disable-script! (:script-key info))
+                                                            (script/enable-script! (:script-key info)))
+                                                          (helper/switch-clojure-plugin-tab)))))])
         unload (atom false)]
     (-> (.getTableHeader tbl)
         (.setReorderingAllowed false))

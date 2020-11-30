@@ -45,7 +45,6 @@
                   (mapcat (fn [[idx v]]
                             [idx (update-fn v)])))]
     (when-not (empty? kvs)
-      (log/info :table-update-by! (vec kvs))
       (apply table/update-at! tbl kvs))))
 
 (defn remove-by!

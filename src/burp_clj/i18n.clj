@@ -101,7 +101,7 @@
                        }
 
         :script-list-form {:header "脚本列表"
-                           :col-enable "生效"
+                           :col-enable "启用"
                            :col-name "名称"
                            :col-version "版本"
                            :menu-reload "重新加载脚本"
