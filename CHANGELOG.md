@@ -1,7 +1,9 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [0.4.11] - 2020-11-29 
+## 0.4.12 - 
+
+## 0.4.11 - 2020-11-30
 ### Added
 - 添加i18n支持
 
