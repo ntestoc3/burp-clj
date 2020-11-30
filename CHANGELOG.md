@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file. This change
 
 ## 0.4.12 - 
 
+### Fixed
+- 重复加载相同的脚本,script-table显示错误的问题
+
 ## 0.4.11 - 2020-11-30
 ### Added
 - 添加i18n支持

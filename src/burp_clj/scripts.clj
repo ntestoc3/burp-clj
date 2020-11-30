@@ -77,9 +77,13 @@
 
 (defn- add-script!
   [k info]
-  (swap! db update :scripts assoc k info)
-  (doseq [cb (get-callbacks :script-add-callback)]
-    (cb k info)))
+  (let [callback-k (if (get-script k)
+                     ;; 如果是已有的script重新加载，则调用script-state-change-callback
+                     :script-state-change-callback
+                     :script-add-callback)]
+    (swap! db update :scripts assoc k info)
+    (doseq [cb (get-callbacks callback-k)]
+      (cb k info))))
 
 (defn- set-script-running!
   [script-k running]

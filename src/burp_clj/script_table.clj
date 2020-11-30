@@ -43,7 +43,9 @@
                 script-info (script/get-script (:script-key info))]
             (when-not (= (:running info)
                          (:running script-info))
-              (if (:running info)
+              (log/info "script table model enable state change:" (:running info)
+                        "org running info:" (:running script-info))
+              #_(if (:running info)
                 (script/enable-script! (:script-key info))
                 (script/disable-script! (:script-key info)))
               (helper/switch-clojure-plugin-tab)))))))
@@ -66,7 +68,8 @@
                                                                 (when row
                                                                   (-> (table/value-at tbl row)
                                                                       :script-key
-                                                                      script/reload-script!))))])])
+                                                                      script/reload-script!))))
+                                                    ])])
                           :model (make-scripts-model []))
         unload (atom false)]
     (-> (.getTableHeader tbl)
@@ -74,15 +77,18 @@
     (script/reg-scripts-unload-callback #(reset! unload true))
     (script/reg-script-add-callback (fn [k info]
                                       (when-not @unload
+                                        (log/info :script-table "add script:" k)
                                         (gui/invoke-later
                                          (->> (fix-script-info k info)
                                               (table/add! tbl))))))
     (script/reg-scripts-clear-callback (fn []
                                          (when-not @unload
+                                           (log/info :script-table "clear all.")
                                            (gui/invoke-later
                                             (table/clear! tbl)))))
     (script/reg-script-state-change-callback (fn [k info]
                                                (when-not @unload
+                                                 (log/info :script-table "update script:" k)
                                                  (gui/invoke-later
                                                   (table-util/update-by! tbl
                                                                          #(= k (:script-key %1))

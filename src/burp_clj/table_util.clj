@@ -15,9 +15,14 @@
 
 (defn insert-by!
   "根据条件查找并插入新行
-  filter-pred 过滤函数，参数为table row数据
-  value 要插入的数据，格式同`seesaw.table/insert-at!`的value
-  after 是否在查找的行之后插入，默认为false"
+
+  `filter-pred` 过滤函数，参数为table row数据
+
+  `value` 要插入的数据，格式同`seesaw.table/insert-at!`的value
+  `after` 是否在查找的行之后插入，默认为false
+
+  如果找不到｀filter-pred`条件，则插入最后一行
+  "
   ([tbl filter-pred value] (insert-by! tbl filter-pred value false))
   ([tbl filter-pred value after]
    (let [kvs (->> (filter-table-by tbl filter-pred)
@@ -26,7 +31,8 @@
                                (inc idx)
                                idx)
                              value])))]
-     (when-not (empty? kvs)
+     (if (empty? kvs)
+       (table/add! tbl value)
        (apply table/insert-at! tbl kvs)))))
 
 (defn update-by!
@@ -39,6 +45,7 @@
                   (mapcat (fn [[idx v]]
                             [idx (update-fn v)])))]
     (when-not (empty? kvs)
+      (log/info :table-update-by! (vec kvs))
       (apply table/update-at! tbl kvs))))
 
 (defn remove-by!
