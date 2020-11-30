@@ -1,9 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.4.13 - 
+
 ## 0.4.12 - 2020-11-30
 ### Added
-- add-issue!函数
+- issue添加add-issue!函数
+- table-util添加values-by函数
 
 ### Fixed
 - 重复加载相同的脚本,script-table处理错误的问题(无法区分是用户点击还是代码修改table model数据)
