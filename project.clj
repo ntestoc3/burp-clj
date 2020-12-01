@@ -15,7 +15,7 @@
                  [camel-snake-kebab "0.4.1"]
                  [org.clojure/tools.gitlibs "1.0.83"] ;; git download
                  [cheshire "5.10.0"] ;; json
-                 [ntestoc/seesaw "0.1.6"]
+                 [ntestoc/seesaw "0.1.8"]
                  [version-clj "0.1.2"]
                  [camel-snake-kebab "0.4.2"]
                  [me.raynes/fs "1.4.6"]         ;; fs utils

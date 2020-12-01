@@ -165,6 +165,21 @@
                          icon/icon
                          .getImage)))
 
+(defn conform-dlg
+  [{:keys [title content type]
+    :or {type :plain}}]
+  (let [dlg (-> (gui/dialog
+                 :title title
+                 :modal? true
+                 :option-type :ok-cancel
+                 :content content
+                 :type type))]
+    (-> (.getOwner dlg)
+        (.setIconImage @burp-img))
+    (-> dlg
+        (gui/pack!)
+        (gui/show!))))
+
 (defn show-ui
   ([widget] (show-ui widget nil))
   ([widget opts]

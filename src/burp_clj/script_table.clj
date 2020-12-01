@@ -12,8 +12,7 @@
             [burp-clj.scripts :as script]
             [burp-clj.i18n :as i18n]
             [taoensso.timbre :as log]
-            [burp-clj.table-util :as table-util])
-  (:import javax.swing.table.DefaultTableModel))
+            [burp-clj.table-util :as table-util]))
 
 (def script-cols-info (when-not *compile-files*
                         [{:key :running

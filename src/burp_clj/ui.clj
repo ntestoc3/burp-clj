@@ -31,18 +31,6 @@
                                      :size size)
              :foreground "#ff6633"))
 
-(defn conform
-  [{:keys [title text type]
-    :or {type :warning}}]
-  (-> (gui/dialog
-       :title title
-       :modal? true
-       :option-type :ok-cancel
-       :content text
-       :type type)
-      (gui/pack!)
-      gui/show!))
-
 (defn choose-dir-btn
   [default-dir target-path]
   (gui/button :icon (io/resource "open_dir.png")
