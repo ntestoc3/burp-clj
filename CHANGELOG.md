@@ -1,9 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## 0.4.13 - 
+## 0.4.13 - 2020-12-01
 ### Added
 - utils添加conform-dlg函数
+
+### Fixed
+- 插件卸载时调用shutdown-agents,防止线程没退出
+- 依赖seesaw新版本，修复table显示的异常
 
 ## 0.4.12 - 2020-11-30
 ### Added

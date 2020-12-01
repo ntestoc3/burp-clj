@@ -360,7 +360,8 @@
   (doseq [cb (get-callbacks :scripts-unload-callback)]
     (cb))
   (unreg-all-script!)
-  (extender/set-setting! :script/sources (get-script-sources)))
+  (extender/set-setting! :script/sources (get-script-sources))
+  (shutdown-agents))
 
 (defn init!
   []
