@@ -1,5 +1,5 @@
 (def feature-version "0.4")
-(def build-version "13")
+(def build-version "14")
 (def release-version (str feature-version "." build-version))
 (def project-name "burp-clj")
 
@@ -18,6 +18,7 @@
                  [ntestoc/seesaw "0.1.8"]
                  [version-clj "0.1.2"]
                  [camel-snake-kebab "0.4.2"]
+                 [com.github.jarod/qqwry-java "0.8.0"] ;; ip location
                  [me.raynes/fs "1.4.6"]         ;; fs utils
                  [com.taoensso/timbre "4.10.0"] ;; logger
                  [instaparse "1.4.10"]
@@ -30,6 +31,7 @@
   :codox {:metadata {:doc/format :markdown}}
   :java-source-paths ["java-src"]
   :source-paths ["src"]
+  :uberjar-exclusions ["qqwry.dat"]
   :uberjar-name ~(str project-name "-" feature-version ".jar")
   :manifest {"Implementation-Version" ~release-version}
   ;; :omit-source true

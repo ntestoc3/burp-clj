@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.4.14
+### Added
+- message viewer和collaborator client添加右键菜单
+- collaborator client增加ip地理位置列
+
+### Changed
+- table-util转移到seesaw库
+
 ## 0.4.13 - 2020-12-01
 ### Added
 - utils添加conform-dlg函数
