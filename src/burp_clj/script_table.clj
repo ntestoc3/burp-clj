@@ -55,7 +55,7 @@
                                                           p (.getPoint e)
                                                           row (.rowAtPoint tbl p)
                                                           col (.columnAtPoint tbl p)]
-                                                      (when (and (pos? row)
+                                                      (when (and (>= row 0)
                                                                  (= 0 col))
                                                         (let [row (.convertRowIndexToModel tbl row)
                                                               info (table/value-at tbl row)]
