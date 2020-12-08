@@ -5,9 +5,6 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 - 添加core.async依赖
 
-### Changed
-- table-util转移到seesaw库
-
 ### Fixed 
 - 修复script table第一行鼠标点击不起作用
 - 修复defsetting初始化错误
