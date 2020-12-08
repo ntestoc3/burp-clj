@@ -1,7 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## 0.4.14
+## 0.4.15 
+
+## 0.4.14 - 2020-12-08
+
 ### Added
 - 添加core.async依赖
 
