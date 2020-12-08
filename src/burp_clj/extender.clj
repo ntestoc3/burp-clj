@@ -162,12 +162,13 @@
         get-fn (symbol (str "get-" sym))
         set-fn (symbol (str "set-" sym "!"))
         update-fn (symbol (str "update-" sym "!"))
-        set-arg (symbol "v")]
+        set-arg (symbol "v")
+        init (gensym "init-setting-key")]
     `(do
        ;; set default value
        (defn ~get-fn
          []
-         (defonce init# (when (nil? (get-setting ~setting-k))
+         (defonce ~init (when (nil? (get-setting ~setting-k))
                           (log/info "init:" ~setting-k)
                           (set-setting! ~setting-k ~default-v)))
          (get-setting ~setting-k))
