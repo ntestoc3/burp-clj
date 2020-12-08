@@ -26,6 +26,7 @@
                  [diehard "0.10.2"] ;; retry limit
                  [com.rpl/specter "1.1.3"] ;; data manipulation
                  [com.taoensso/tempura "1.2.1"] ;; i18n
+                 [org.clojure/core.async "1.3.610"] ;; async
                  ]
   :plugins [[lein-codox "0.10.7"]]
   :codox {:metadata {:doc/format :markdown}}

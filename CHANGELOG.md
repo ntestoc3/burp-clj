@@ -5,9 +5,14 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 - message viewer和collaborator client添加右键菜单
 - collaborator client增加ip地理位置列
+- 添加core.async依赖
 
 ### Changed
 - table-util转移到seesaw库
+
+### Fixed 
+- 修复script table第一行鼠标点击不起作用
+
 
 ## 0.4.13 - 2020-12-01
 ### Added
