@@ -1,9 +1,11 @@
 (ns burp-clj.i18n
   (:require [taoensso.tempura :as tempura :refer [tr]]
-            [burp-clj.extender :as extender]))
+            [burp-clj.extender :as extender]
+            [taoensso.timbre :as log]))
 
 
-(extender/defsetting :language (keyword (System/getProperty "user.language")))
+(extender/defsetting :language (or (keyword (System/getProperty "user.language"))
+                                   :en))
 
 (def supported-lang {:en "english"
                      :zh "中文简体"})
