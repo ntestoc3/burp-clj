@@ -46,7 +46,11 @@
 
 (defn input-dir
   [{:keys [parent title text default-path]}]
-  (let [dlg (gui/dialog
+  (let [default-path (when (and default-path
+                                (fs/directory? default-path))
+                       default-path
+                       (str (fs/home)))
+        dlg (gui/dialog
              :parent parent
              :title title
              :modal? true
@@ -57,12 +61,7 @@
                                [(gui/text :id :info
                                           :text default-path)
                                 "grow, wmin 300"]
-                               [(choose-dir-btn
-                                 (when (and default-path
-                                            (fs/directory? default-path))
-                                   default-path
-                                   (str (fs/home)))
-                                 [:#info])
+                               [(choose-dir-btn default-path [:#info])
                                 "gap 5px"]])
              :option-type :ok-cancel
              :success-fn (fn [p]

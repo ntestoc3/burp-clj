@@ -1,7 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## 0.4.15 
+## 0.4.16
+## Fixed 
+- 修复ui input-dir默认目录显示的问题
+
+## 0.4.15 - 2020-12-09
 ## Fixed
 - 修复i18n, get-language初始化可能为空的异常
 
