@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## 0.4.16
+## Added
+- message-editor增加make-syntax-editor-tab函数,用于创建使用syntax-editor的IMessageEditorTab
+
 ## Fixed 
 - 修复ui input-dir默认目录显示的问题
 
