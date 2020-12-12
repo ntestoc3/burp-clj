@@ -1,6 +1,7 @@
 (ns burp-clj.message-editor
   (:require [burp-clj.helper :as helper]
             [burp-clj.syntax-editor :refer [syntax-text-area]]
+            [seesaw.rsyntax :as rsyntax]
             [seesaw.core :as gui]
             [burp-clj.utils :as utils]
             [taoensso.timbre :as log])
@@ -39,32 +40,39 @@
   (let [state (atom {})
         ta (apply syntax-text-area {:key-maps key-maps :auto-completion auto-completion}
                   :editable? editable?
-                  (apply concat syntax-text-area-opts))]
+                  (apply concat syntax-text-area-opts))
+        comp (rsyntax/text-scroll ta
+                                  :line-numbers? true
+                                  :fold-indicator? true
+                                  :icon-row-header? true)
+        check-modify (fn []
+                       (when (and editable?
+                                  modify-msg-fn
+                                  (not= (gui/text ta)
+                                        (get @state :view-data)))
+                         (when-let [new-msg (modify-msg-fn
+                                             (get @state :message)
+                                             (get @state :is-req)
+                                             (gui/text ta))]
+                           (let [new-data (proc-msg-fn new-msg (get @state :is-req))]
+                             (gui/text! ta new-data)
+                             (swap! state assoc
+                                    :message new-msg
+                                    :view-data new-data
+                                    :modify true))))) ]
     (when editable?
-      (gui/listen ta :focus-lost
-                  (fn [e]
-                    (when (and modify-msg-fn
-                               (not= (gui/text ta)
-                                     (get @state :view-data)))
-                      (when-let [new-msg (modify-msg-fn
-                                          (get @state :message)
-                                          (get @state :is-req)
-                                          (gui/text ta))]
-                        (let [new-data (proc-msg-fn new-msg (get @state :is-req))]
-                          (gui/text! ta new-data)
-                          (swap! state assoc
-                                 :message new-msg
-                                 :view-data new-data
-                                 :modify true)))))))
+      (gui/listen ta :focus-lost (fn [_] (check-modify))))
     (reify IMessageEditorTab
       (^bytes getMessage [this]
+       ;; 从此tab切换走时就会调用
+       (check-modify)
        (-> (or (get @state :message) "")
            (utils/->bytes)))
       (^bytes getSelectedData [this]
        (-> (or (gui/selection ta) "")
            (utils/->bytes)))
       (getTabCaption [this] title)
-      (getUiComponent [this] ta)
+      (getUiComponent [this] comp)
       (^boolean isEnabled [this ^bytes content ^boolean is-req]
        ;; 决定是否需要显示控件时调用
        (boolean (proc-msg-fn content is-req)))
