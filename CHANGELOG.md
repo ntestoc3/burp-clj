@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. This change
 
 ## Fixed 
 - 修复ui input-dir默认目录显示的问题
+- 修复utils中->bytes,->string转换的编码问题，默认使用ASCII,防止互转时数据改变
 
 ## 0.4.15 - 2020-12-09
 ## Fixed

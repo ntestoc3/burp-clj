@@ -544,27 +544,29 @@
    (update-header hdr k (constantly v) opts)))
 
 (defn ->bytes
-  [data]
-  (cond
-    (bytes? data) data
-    (string? data) (.getBytes data)
-    :else (throw (ex-info (format "unsupport ->bytes format: %s." (type data))
-                          {:data data}))))
+  "转换为bytes
+
+  `:encoding` 如果data是字符串，指定字符串编码，默认为ASCII
+  "
+  ([data] (->bytes data "ASCII"))
+  ([data encoding]
+   (cond
+     (bytes? data) data
+     (string? data) (.getBytes data encoding)
+     :else (throw (ex-info (format "unsupport ->bytes format: %s." (type data))
+                           {:data data})))))
 
 (defn ->string
-  [data]
-  (cond
-    (string? data) data
-    (bytes? data) (String. data)
-    :else (throw (ex-info (format "unsupport ->string format: %s." (type data))
-                          {:data data}))))
+  "转换为string
 
-(defn- ->http-raw
-  [msg]
-  (cond
-    (string? msg) msg
-    (bytes? msg) (String. msg)
-    :else (throw (ex-info "unsupport http message type." {:msg msg}))))
+  `:encoding` 转换为目标字符串的编码，默认为ASCII,如果data是字符串，则不做转换"
+  ([data] (->string data "ASCII"))
+  ([data encoding]
+   (cond
+     (string? data) data
+     (bytes? data) (String. data encoding)
+     :else (throw (ex-info (format "unsupport ->string format: %s." (type data))
+                           {:data data})))))
 
 (defn parse-request
   "解析http请求
@@ -577,7 +579,7 @@
   ([req] (parse-request req nil))
   ([req opts]
    (when req
-     (let [[headers body] (-> (->http-raw req)
+     (let [[headers body] (-> (->string req)
                               (str/split #"\r?\n\r?\n" 2))
            [start-line & headers] (str/split headers #"\r?\n")
            [method uri http-ver] (-> (str/trim start-line)
@@ -603,7 +605,7 @@
   ([resp] (parse-response resp nil))
   ([resp opts]
    (when resp
-     (let [[headers body] (-> (->http-raw resp)
+     (let [[headers body] (-> (->string resp)
                               (str/split #"\r?\n\r?\n" 2))
            [start-line & headers] (str/split headers #"\r?\n")
            [http-ver status-code] (-> (str/trim start-line)
