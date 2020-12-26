@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed 
 - butp-clj.utils命名空间下http消息处理的函数全部转移到burp-clj.http-message命名空间中
+- parse-request, parse-response返回body类型改为bytes,防止编码转换
 
 ## 0.4.15 - 2020-12-09
 ## Fixed
