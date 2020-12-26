@@ -97,8 +97,8 @@
                 (-> (utils/->string s)
                     (str/includes? subs)))
     :matches (fn [s re-s]
-               (-> (utils/->string s)
-                   (re-matches (re-pattern re-s))))
+               (->> (utils/->string s)
+                    (re-matches (re-pattern re-s))))
     :in (fn [src dst]
           (dst src))
     :and #(and %1 %2)

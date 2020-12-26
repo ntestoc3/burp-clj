@@ -1,7 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## 0.5.0
+## 0.5.1 - 2020-12-26
+### Fixed
+- 修复filter-exp regex参数错误
+
+## 0.5.0 - 2020-12-26
 ### Added
 - message-editor增加make-syntax-editor-tab函数,用于创建使用syntax-editor的IMessageEditorTab
 
