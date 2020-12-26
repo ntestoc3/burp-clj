@@ -413,9 +413,9 @@
 (defn ->bytes
   "转换为bytes
 
-  `:encoding` 如果data是字符串，指定字符串编码，默认为ASCII
+  `:encoding` 如果data是字符串，指定字符串编码，默认为ISO-8859-1(与字符串互转，符号位不丢失)
   "
-  ([data] (->bytes data "ASCII"))
+  ([data] (->bytes data "ISO-8859-1"))
   ([data encoding]
    (cond
      (bytes? data) data
@@ -427,8 +427,8 @@
 (defn ->string
   "转换为string
 
-  `:encoding` 转换为目标字符串的编码，默认为ASCII,如果data是字符串，则不做转换"
-  ([data] (->string data "ASCII"))
+  `:encoding` 转换为目标字符串的编码，默认为ISO-8859-1(与bytes互转，符号位不丢失),如果data是字符串，则不做转换"
+  ([data] (->string data "ISO-8859-1"))
   ([data encoding]
    (cond
      (string? data) data
