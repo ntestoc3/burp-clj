@@ -12,10 +12,8 @@
             [me.raynes.fs :as fs]
             [clojure.java.io :as io])
   (:import [clojure.lang DynamicClassLoader RT]
-           burp.IHttpRequestResponse
            [java.awt.event HierarchyEvent HierarchyListener]
-           [javax.swing.event AncestorListener]
-           [java.net URLEncoder URLDecoder]))
+           [javax.swing.event AncestorListener]))
 
 ;;;;;;;;;;;;;;;; dep helper
 (def default-repo (merge cemerick.pomegranate.aether/maven-central
@@ -412,137 +410,6 @@
    (try (Long/parseLong s)
         (catch Exception e default-value))))
 
-;;;;;;;;;;; http helper
-(defn- gen-format-fn
-  [{:keys [ignore-case
-           ignore-space]
-    :or {ignore-case true
-         ignore-space true}}]
-  (->> (cond-> []
-         ignore-case (conj str/lower-case)
-         ignore-space (conj str/trim)
-         :always (conj name))
-       (apply comp)))
-
-(defn parse-headers
-  "解析http header, 忽略status line
-  `hls`为包含HTTP header line的seq
-  `k` 要查找的key
-
-  可选选项
-  :key-fn key转换函数，默认转换为clojure keyword格式
-  :val-fn value转换函数，默认为`clojure.string/trim`
-  "
-  ([hls] (parse-headers hls nil))
-  ([hls {:keys [key-fn val-fn]
-         :or {key-fn csk/->kebab-case-keyword
-              val-fn str/trim}}]
-   (->> hls
-        ;; TODO 这里为了兼容性,header kv的分隔没有加空格
-        (map #(str/split %1 #":" 2))
-        (filter #(= 2 (count %)))
-        (map (fn [[k v]] [(key-fn k)
-                          (val-fn v)])))))
-
-(defn get-headers
-  "从hdr中查找k的所有值,结果为seq类型
-
-  `hdr` http header结构
-  `k` 要查找的key
-
-  可选选项:
-  :ignore-case 比较header key忽略大小写,默认为true
-  :ignore-space 比较header key忽略首尾空格,默认为true
-  "
-  ([hdr k] (get-headers hdr k nil))
-  ([hdr k opts]
-   (let [format-fn (gen-format-fn opts)
-         find-k (format-fn k)]
-     (->> hdr
-          (map (fn [[k v]]
-                 (when (= find-k (format-fn k))
-                   v)))
-          (filter identity)))))
-
-(defn insert-headers
-  "向http头结构中插入http头,hdr与hdr2结构相同
-
-  `pos-k`  如果指定`pos-k`，则在`pos-k`之前或之后插入hdr2 http头,否则在最后插入hdr2
-
-  可选选项:
-  :ignore-case 比较key忽略大小写,默认为true
-  :ignore-space 比较key忽略首尾空格,默认为true
-  :insert-before 如果为true,则在`pos-k`项之前插入`hdr2`,默认为false
-  "
-  ([hdr hdr2]
-   (concat hdr hdr2))
-  ([hdr hdr2 pos-k]
-   (insert-headers hdr hdr2 pos-k nil))
-  ([hdr hdr2 pos-k {:keys [insert-before] :as opts}]
-   (let [format-fn (gen-format-fn opts)
-         find-k (format-fn pos-k)
-         [left right] (split-with
-                       (fn [[k _]]
-                         (not (= find-k (format-fn k))))
-                       hdr)]
-     (apply concat left (if insert-before
-                          [hdr2 right]
-                          [(when (seq right)
-                             (take 1 right))
-                           hdr2
-                           (rest right)])))))
-
-(defn find-index-kv
-  ([hdr k] (find-index-kv hdr k nil))
-  ([hdr k opts]
-   (let [format-fn (gen-format-fn opts)
-         find-k (format-fn k)]
-     (->> hdr
-          (keep-indexed (fn [idx [k v]]
-                          (when (= find-k (format-fn k))
-                            [idx k v])))
-          first))))
-
-(defn update-header
-  "修改http headere的值
-  `k` 要修改的header key,如果找不到,则在header最后添加k v
-  `f` 更新函数(f v),v为k对应的值,如果找不到则为nil
-
-  可选选项:
-  :ignore-case 比较key忽略大小写,默认为true
-  :ignore-space 比较key忽略首尾空格,默认为true
-  :keep-old-key 是否使用原先的key,默认为true,
-                如果为flase，则使用`k`代替原先的key
-                如果找不到key，总是使用给定的`k`
-  "
-  ([hdr k f] (update-header hdr k f nil))
-  ([hdr k f {:keys [keep-old-key]
-             :or {keep-old-key true}
-             :as opts}]
-   (let [[idx old-k v] (or (find-index-kv hdr k opts)
-                           [(count hdr) k nil])]
-     (assoc-at hdr idx [(if keep-old-key
-                          old-k
-                          k)
-                        (f v)]))))
-
-(defn assoc-header
-  "修改http headere的值
-  `k` 要修改的header key,如果找不到,则在header最后添加k v
-
-  可选选项:
-  :ignore-case 比较key忽略大小写,默认为true
-  :ignore-space 比较key忽略首尾空格,默认为true
-  :keep-old-key 是否使用原先的key,默认为true,
-                如果为flase，则使用`k`代替原先的key
-                如果找不到key，总是使用给定的`k`
-  "
-  ([hdr k v] (assoc-header hdr k v nil))
-  ([hdr k v {:keys [keep-old-key]
-             :or {keep-old-key true}
-             :as opts}]
-   (update-header hdr k (constantly v) opts)))
-
 (defn ->bytes
   "转换为bytes
 
@@ -553,6 +420,7 @@
    (cond
      (bytes? data) data
      (string? data) (.getBytes data encoding)
+     (nil? data) (byte-array 0)
      :else (throw (ex-info (format "unsupport ->bytes format: %s." (type data))
                            {:data data})))))
 
@@ -565,120 +433,17 @@
    (cond
      (string? data) data
      (bytes? data) (String. data encoding)
-     :else (throw (ex-info (format "unsupport ->string format: %s." (type data))
-                           {:data data})))))
+     :default (str data))))
 
-(defn parse-request
-  "解析http请求
-
-  `opts`参数:
-
-  解析header相关
-  :key-fn http header key转换函数，默认转换为clojure keyword格式
-  :val-fn value转换函数，默认为`clojure.string/trim`"
-  ([req] (parse-request req nil))
-  ([req opts]
-   (when req
-     (let [[headers body] (-> (->string req)
-                              (str/split #"\r?\n\r?\n" 2))
-           [start-line & headers] (str/split headers #"\r?\n")
-           [method uri http-ver] (-> (str/trim start-line)
-                                     (str/split #"\s+"))
-           headers (parse-headers headers opts)]
-       {:method (csk/->kebab-case-keyword method)
-        :url uri
-        :version (-> (str/split http-ver #"/")
-                     last)
-        :headers headers
-        :body (when (seq body)
-                body)}))))
-
-(defn parse-response
-  "解析http响应
-
-   `opts`参数:
-
-  解析header相关
-  :key-fn key转换函数，默认转换为clojure keyword格式
-  :val-fn value转换函数，默认为`clojure.string/trim`
-  "
-  ([resp] (parse-response resp nil))
-  ([resp opts]
-   (when resp
-     (let [[headers body] (-> (->string resp)
-                              (str/split #"\r?\n\r?\n" 2))
-           [start-line & headers] (str/split headers #"\r?\n")
-           [http-ver status-code] (-> (str/trim start-line)
-                                      (str/split #"\s+"))
-           headers (parse-headers headers opts)]
-       {:status (try-parse-int status-code)
-        :version (-> (str/split http-ver #"/")
-                     last)
-        :headers headers
-        :body body}))))
-
-(defn space-leader
-  "添加前导空格"
-  [s]
-  (str " " s))
-
-(defn build-headers-raw
-  "构造http headers
-
-  可选参数:
-  :key-fn http header key转换函数，默认转换为HttpHeaderCase格式
-  :val-fn http header value转换函数，默认为`space-leader` "
-  ([headers] (build-headers-raw headers nil))
-  ([headers {:keys [key-fn val-fn]
-             :or {key-fn csk/->HTTP-Header-Case-String
-                  val-fn space-leader}}]
-   (->> headers
-        (map (fn [[k v]]
-               (str (key-fn k)
-                    ":" ;; 这里分隔符后面的空格作为value的一部分进行处理
-                    (val-fn v))))
-        (str/join "\r\n"))))
-
-(defn can-have-content-length?
-  [headers body-len]
-  (if (first (get-headers headers :content-length))
-    true
-    ;; 如果没有content-length头，则要body大于0
-    (and (pos? body-len)
-         ;; 并且transfer-encoding不能为chunked
-         (->> (get-headers headers :transfer-encoding)
-              first
-              (not= "chunked")))))
-
-(defn build-request-raw
-  "构造http原始请求字符串
-
-
-  `opts`参数
-  :fix-content-length 修正Content-Length的值，默认为true
-  :key-fn http header key转换函数，默认转换为HttpHeaderCase格式
-  :val-fn http header value转换函数，默认为identity "
-  ([data] (build-request-raw data nil))
-  ([{:keys [method
-            url
-            version
-            body
-            headers]
-     :or {method :get
-          url "/"
-          version "1.1"}}
-    {:keys [fix-content-length]
-     :or {fix-content-length true}
-     :as opts}]
-   (let [headers (cond-> headers
-                   (and fix-content-length
-                        (can-have-content-length? headers (count body)))
-                   (assoc-header "Content-Length" (count body) {:keep-old-key false}))]
-     (str (-> (name method)
-              str/upper-case) " " url " HTTP/" version "\r\n"
-          (build-headers-raw headers opts)
-          "\r\n\r\n"
-          body))))
+(defn concat-byte-arrays
+  [& byte-arrays]
+  (when (not-empty byte-arrays)
+    (let [total-size (reduce + (map count byte-arrays))
+          result     (byte-array total-size)
+          bb         (java.nio.ByteBuffer/wrap result)]
+      (doseq [ba byte-arrays]
+        (.put bb ba))
+      result)))
 
 ;;;;; time helper
 (defmacro time-execution
@@ -688,19 +453,3 @@
        (hash-map :return (time ~@body)
                  :time   (-> (.replaceAll (str s#) "[^0-9\\.]" "")
                              (Double/parseDouble))))))
-;;; url helper
-(defn encode-params [request-params]
-  (let [encode #(URLEncoder/encode (str %) "UTF-8")
-        coded (for [[n v] request-params] (str (encode (name n))
-                                               "="
-                                               (encode v)))]
-    (apply str (interpose "&" coded))))
-
-(defn decode-params [params]
-  (let [decode #(URLDecoder/decode (str %) "UTF-8")]
-    (->> (str/split params #"&")
-         (map #(let [[k v] (-> %1
-                               (str/split #"=" 2))]
-                 [(csk/->kebab-case-keyword (decode k))
-                  (decode v)]))
-         (into {}))))

@@ -4,6 +4,7 @@
             [burp-clj.helper :as helper]
             [burp-clj.utils :as utils]
             [burp-clj.i18n :as i18n]
+            [burp-clj.http-message :as http-message]
             [seesaw.swingx :as guix]
             [seesaw.mig :refer [mig-panel]]
             [seesaw.table :as table]
@@ -23,7 +24,7 @@
 
 (defn- gen-cmd
   [url params]
-  (let [param-line (utils/encode-params params)]
+  (let [param-line (http-message/encode-params params)]
     (if (empty? param-line)
       url
       (str url "?" param-line))))
@@ -32,7 +33,7 @@
   [url]
   (some-> (str/split url #"\?")
           second
-          utils/decode-params))
+          http-message/decode-params))
 
 (defn gen-payload
   "生成Burp Collaborator payloads
@@ -84,7 +85,7 @@
 (defn- parse-collaborator-http
   "解析collaborator http消息"
   [{:keys [protocol request response type] :as msg}]
-  (let [req-info (helper/flatten-format-req-resp request :request)]
+  (let [req-info (http-message/flatten-format-req-resp request :request)]
     (merge
      (-> (get-cmd (:request/url req-info))
          (utils/map->nsmap :params))
@@ -93,7 +94,7 @@
       :summary (i18n/ptr :collaborator/http-summary protocol)}
      (dissoc msg :request :response)
      req-info
-     (helper/flatten-format-req-resp response :response))))
+     (http-message/flatten-format-req-resp response :response))))
 
 (defn- parse-collaborator-dns
   "解析collaborator dns其它消息"

@@ -260,35 +260,6 @@
     :else
     (throw (ex-info "unsupport http service type." {:service service}))))
 
-(defn flatten-format-req-resp
-  "格式化req或resp
-  `req-or-resp` 请求或响应的结果
-  `format-type`只能是:request或:response, 默认为:request"
-  ([req-or-resp] (flatten-format-req-resp req-or-resp :request))
-  ([req-or-resp format-type]
-   (-> (if (= :request format-type)
-         (utils/parse-request req-or-resp)
-         (utils/parse-response req-or-resp))
-       (update :headers #(into {} %1))
-       (utils/map->nsmap format-type true))))
-
-(defn parse-http-req-resp
-  "解析http req resp消息，
-  `req-resp` IHttpRequestResponse"
-  [req-resp]
-  (let [req (.getRequest req-resp)
-        resp (.getResponse req-resp)
-        service (-> (.getHttpService req-resp)
-                    parse-http-service)]
-    (merge
-     {:comment (.getComment req-resp)
-      :request/raw (.getRequest req-resp)
-      :response/raw (.getResponse req-resp)
-      :full-host (get-full-host service)}
-     service
-     (flatten-format-req-resp req :request)
-     (flatten-format-req-resp resp :response))))
-
 (defn analyze-request
   "分析请求"
   ([req]

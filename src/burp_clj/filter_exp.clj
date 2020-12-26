@@ -3,7 +3,8 @@
   (:require [instaparse.core :as insta :refer [defparser]]
             [clojure.edn :as edn]
             [clojure.string :as str]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [burp-clj.utils :as utils]))
 
 (def whitespace (insta/parser "whitespace = #'\\s+'"))
 
@@ -93,12 +94,11 @@
     :eq (partial cast-compare ==)
     :neq (partial cast-compare not=)
     :contains (fn [s subs]
-                (when-not (nil? s)
-                  (str/includes? (str s) subs)))
+                (-> (utils/->string s)
+                    (str/includes? subs)))
     :matches (fn [s re-s]
-               (when-not (nil? s)
-                 (-> (re-pattern re-s)
-                     (re-matches (str s)))))
+               (-> (utils/->string s)
+                   (re-matches (re-pattern re-s))))
     :in (fn [src dst]
           (dst src))
     :and #(and %1 %2)

@@ -247,7 +247,7 @@
   (def hs (extender/get-proxy-history))
 
   (def datas (map-indexed (fn [idx v]
-                            (let [info (helper/parse-http-req-resp v)]
+                            (let [info (burp-clj.http-message/parse-http-req-resp v)]
                               (cond-> (assoc info :index idx)
                                 (and (:response/status info)
                                      (>= (:response/status info) 500))

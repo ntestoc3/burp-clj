@@ -1,13 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## 0.4.16
-## Added
+## 0.5.0
+### Added
 - message-editor增加make-syntax-editor-tab函数,用于创建使用syntax-editor的IMessageEditorTab
 
-## Fixed 
+### Fixed 
 - 修复ui input-dir默认目录显示的问题
 - 修复utils中->bytes,->string转换的编码问题，默认使用ASCII,防止互转时数据改变
+
+### Changed 
+- butp-clj.utils命名空间下http消息处理的函数全部转移到burp-clj.http-message命名空间中
 
 ## 0.4.15 - 2020-12-09
 ## Fixed
