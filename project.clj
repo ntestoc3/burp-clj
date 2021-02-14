@@ -1,11 +1,11 @@
 (def feature-version "0.5")
-(def build-version "2")
+(def build-version "3")
 (def release-version (str feature-version "." build-version))
 (def project-name "burp-clj")
 
 (defproject project-name feature-version
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "burp clojure plugin"
+  :url "https://github.com/ntestoc3/burp-clj"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.1"]

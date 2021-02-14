@@ -1,7 +1,9 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## 0.5.2
+## 0.5.3 
+
+## 0.5.2 - 2021-02-14
 ### Changed 
 - burp-clj.utils中->bytes,->string转换默认编码改为ISO-8859-1,防止相互转换造成符号位丢失。
 
