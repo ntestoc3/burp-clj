@@ -158,8 +158,13 @@
     (load-file (str (fs/file fs/*cwd* path)))))
 
 ;;;;;;;;;;; gui helper
-(def burp-img (delay (-> "resources/Media/icon32.png"
-                         (io/resource (.getClassLoader burp.ICookie))
+(defn burp-resource
+  [path]
+  (->> (.getClassLoader burp.ICookie)
+       (io/resource path)))
+
+(def burp-img (delay (-> (or (burp-resource "resources/Media/icon32.png")
+                             (burp-resource "resources/Media/icon32pro.png"))
                          icon/icon
                          .getImage)))
 
