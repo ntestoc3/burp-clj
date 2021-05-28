@@ -11,6 +11,10 @@ https://github.com/ntestoc3/burp-scripts
 
 然后点Reload Scripts!加载这个目录下的所有clj文件，支持git url和本地文件夹。
 
+使用示例参考:
+https://www.freebuf.com/sectool/252034.html
+https://www.freebuf.com/sectool/264915.html
+
 ## License
 
 Copyright © 2020 ntestoc3
